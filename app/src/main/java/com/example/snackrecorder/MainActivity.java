@@ -73,6 +73,7 @@ public final class MainActivity extends Activity {
     private Spinner monthSpinner;
     private Spinner yearSpinner;
     private Button viewToggleButton;
+    private GridLayout calendarGrid;
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
     private TextView selectedDayTitle;
@@ -318,6 +319,7 @@ public final class MainActivity extends Activity {
 
     private GridLayout createCalendarGrid() {
         GridLayout grid = new GridLayout(this);
+        calendarGrid = grid;
         grid.setColumnCount(7);
         grid.setRowCount(7);
         grid.setPadding(0, dp(4), 0, dp(8));
@@ -455,7 +457,32 @@ public final class MainActivity extends Activity {
         visibleMonth = firstDayOfMonth(selectedDateCalendar());
         dayCells.clear();
 
-        Dialog dialog = new Dialog(this);
+        Dialog dialog = new Dialog(this) {
+            private float dialogTouchDownX;
+            private float dialogTouchDownY;
+
+            @Override
+            public boolean dispatchTouchEvent(MotionEvent event) {
+                switch (event.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        dialogTouchDownX = event.getX();
+                        dialogTouchDownY = event.getY();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        float deltaX = event.getX() - dialogTouchDownX;
+                        float deltaY = event.getY() - dialogTouchDownY;
+                        int minSwipeDistance = dp(MIN_SWIPE_DISTANCE_DP);
+                        if (!slideInProgress && Math.abs(deltaX) > minSwipeDistance && Math.abs(deltaX) > Math.abs(deltaY) * 1.5f) {
+                            slideCalendarMonth(deltaX < 0 ? 1 : -1);
+                            return true;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                return super.dispatchTouchEvent(event);
+            }
+        };
         calendarDialog = dialog;
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -492,6 +519,7 @@ public final class MainActivity extends Activity {
             calendarDialog = null;
             monthSpinner = null;
             yearSpinner = null;
+            calendarGrid = null;
             dayCells.clear();
         });
         dialog.show();
@@ -995,6 +1023,15 @@ public final class MainActivity extends Activity {
         }
 
         runSlide(monthPanel, deltaMonths, () -> shiftVisibleMonth(deltaMonths));
+    }
+
+    private void slideCalendarMonth(int deltaMonths) {
+        if (calendarGrid == null) {
+            shiftMonth(deltaMonths);
+            return;
+        }
+
+        runSlide(calendarGrid, deltaMonths, () -> shiftMonth(deltaMonths));
     }
 
     private void runSlide(View panel, int direction, Runnable contentChange) {
