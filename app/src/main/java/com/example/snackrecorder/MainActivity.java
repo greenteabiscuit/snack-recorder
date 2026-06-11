@@ -622,10 +622,6 @@ public final class MainActivity extends Activity {
                 monthListAdapter.add(
                         compactDateFormat.format(dayCalendar.getTime())
                                 + "  ·  "
-                                + day.getSnackCount()
-                                + " snack"
-                                + (day.getSnackCount() == 1 ? "" : "s")
-                                + "  ·  "
                                 + formatSnackList(day.getSnacks())
                 );
             }
