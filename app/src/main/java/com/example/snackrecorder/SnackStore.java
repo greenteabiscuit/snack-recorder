@@ -69,6 +69,17 @@ final class SnackStore {
         saveDays(days);
     }
 
+    void updateSnack(String dateIso, int snackIndex, String snack) {
+        Map<String, ArrayList<String>> days = loadDays();
+        ArrayList<String> snacks = days.get(dateIso);
+        if (snacks == null || snackIndex < 0 || snackIndex >= snacks.size()) {
+            return;
+        }
+
+        snacks.set(snackIndex, snack);
+        saveDays(days);
+    }
+
     String exportCsv() {
         StringBuilder csv = new StringBuilder("date,snack\n");
         TreeMap<String, ArrayList<String>> sortedDays = new TreeMap<>(loadDays());

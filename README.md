@@ -28,7 +28,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Swipe left/right on the main screen to move to the next/previous day
 - Swipe transitions use a quick slide animation
 - Add snack by typing a name and tapping **Add**
-- Remove snack by long-pressing it in the list
+- Edit snacks with the ✎ button and remove them with the 🗑 button
 - Export all snacks as CSV with `date,snack` columns
 
 ## Build

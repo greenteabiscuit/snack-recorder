@@ -81,7 +81,7 @@ public final class MainActivity extends Activity {
     private TextView monthSummary;
     private TextView monthAddDateLabel;
     private EditText snackInput;
-    private ArrayAdapter<String> snackListAdapter;
+    private LinearLayout snackListContainer;
     private ArrayAdapter<CharSequence> monthListAdapter;
 
     @Override
@@ -382,24 +382,10 @@ public final class MainActivity extends Activity {
         addRow.addView(addButton);
         panel.addView(addRow);
 
-        TextView help = new TextView(this);
-        help.setText("Long-press a snack to remove it.");
-        help.setTextColor(TEXT_MUTED);
-        help.setTextSize(13);
-        help.setPadding(0, dp(6), 0, dp(4));
-        panel.addView(help);
-
-        ListView snackList = new ListView(this);
-        snackListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
-        snackList.setAdapter(snackListAdapter);
-        snackList.setOnItemLongClickListener((parent, view, position, id) -> {
-            snackStore.removeSnack(selectedDateIso, position);
-            renderCalendar();
-            renderSelectedDay();
-            renderMonthView();
-            return true;
-        });
-        panel.addView(snackList, new LinearLayout.LayoutParams(
+        snackListContainer = new LinearLayout(this);
+        snackListContainer.setOrientation(LinearLayout.VERTICAL);
+        snackListContainer.setPadding(0, dp(8), 0, 0);
+        panel.addView(snackListContainer, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1f
@@ -585,9 +571,123 @@ public final class MainActivity extends Activity {
         int count = snackDay.getSnackCount();
         selectedDayTitle.setText(friendlyDateFormat.format(selected.getTime()));
         selectedDayCount.setText(count + " snack" + (count == 1 ? "" : "s") + " recorded · " + snackDay.getDateIso());
-        snackListAdapter.clear();
-        snackListAdapter.addAll(snackDay.getSnacks());
-        snackListAdapter.notifyDataSetChanged();
+        renderSnackRows(snackDay);
+    }
+
+    private void renderSnackRows(SnackDay snackDay) {
+        if (snackListContainer == null) {
+            return;
+        }
+
+        snackListContainer.removeAllViews();
+        List<String> snacks = snackDay.getSnacks();
+        if (snacks.isEmpty()) {
+            TextView emptyState = new TextView(this);
+            emptyState.setText("No snacks recorded for this day.");
+            emptyState.setTextColor(TEXT_MUTED);
+            emptyState.setTextSize(15);
+            emptyState.setPadding(0, dp(12), 0, 0);
+            snackListContainer.addView(emptyState);
+            return;
+        }
+
+        for (int i = 0; i < snacks.size(); i++) {
+            snackListContainer.addView(createSnackRow(snacks.get(i), i));
+        }
+    }
+
+    private LinearLayout createSnackRow(String snack, int snackIndex) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(3), 0, dp(3));
+
+        TextView snackName = new TextView(this);
+        snackName.setText(snack);
+        snackName.setTextColor(TEXT_DARK);
+        snackName.setTextSize(18);
+        row.addView(snackName, new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+
+        Button editButton = compactButton("✎");
+        editButton.setTextSize(18);
+        editButton.setOnClickListener(view -> showEditSnackDialog(snackIndex, snack));
+        row.addView(editButton);
+
+        Button deleteButton = compactButton("🗑");
+        deleteButton.setTextSize(18);
+        deleteButton.setOnClickListener(view -> {
+            snackStore.removeSnack(selectedDateIso, snackIndex);
+            refreshAllViews();
+        });
+        row.addView(deleteButton);
+
+        return row;
+    }
+
+    private void showEditSnackDialog(int snackIndex, String currentSnack) {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(16), dp(16), dp(12));
+        content.setBackgroundColor(BACKGROUND);
+
+        TextView title = new TextView(this);
+        title.setText("Edit snack");
+        title.setTextColor(TEXT_DARK);
+        title.setTextSize(22);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        content.addView(title);
+
+        EditText editInput = new EditText(this);
+        editInput.setSingleLine(true);
+        editInput.setText(currentSnack);
+        editInput.setSelectAllOnFocus(true);
+        editInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        content.addView(editInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        actions.setPadding(0, dp(10), 0, 0);
+
+        Button cancelButton = new Button(this);
+        cancelButton.setText("Cancel");
+        cancelButton.setAllCaps(false);
+        cancelButton.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(cancelButton);
+
+        Button saveButton = new Button(this);
+        saveButton.setText("Save");
+        saveButton.setAllCaps(false);
+        saveButton.setOnClickListener(view -> {
+            String updatedSnack = editInput.getText().toString().trim();
+            if (updatedSnack.isEmpty()) {
+                Toast.makeText(this, "Enter a snack first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            snackStore.updateSnack(selectedDateIso, snackIndex, updatedSnack);
+            refreshAllViews();
+            dialog.dismiss();
+        });
+        actions.addView(saveButton);
+        content.addView(actions);
+
+        dialog.setContentView(content);
+        dialog.show();
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setLayout(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+        }
     }
 
     private void renderMonthView() {
@@ -714,6 +814,10 @@ public final class MainActivity extends Activity {
 
         snackStore.addSnack(selectedDateIso, snack);
         snackInput.setText("");
+        refreshAllViews();
+    }
+
+    private void refreshAllViews() {
         renderCalendar();
         renderSelectedDay();
         renderMonthView();
