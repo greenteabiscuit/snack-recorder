@@ -20,6 +20,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Selected-day snack list
 - Header list icon toggles between individual-day mode and monthly snack-list mode
 - Header crosshair button slides back to the current date/current month
+- Header calendar button opens the calendar date picker from either mode
 - Monthly snack-list mode shows every day in one month, including snack-free days
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red
 - Monthly summary shows snack count, snack days, and snack-free days

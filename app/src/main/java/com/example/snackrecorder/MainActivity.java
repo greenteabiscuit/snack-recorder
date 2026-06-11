@@ -165,6 +165,11 @@ public final class MainActivity extends Activity {
         todayButton.setOnClickListener(view -> goToToday());
         titleRow.addView(todayButton);
 
+        Button calendarButton = compactButton("▦");
+        calendarButton.setTextSize(22);
+        calendarButton.setOnClickListener(view -> showCalendarDialog());
+        titleRow.addView(calendarButton);
+
         viewToggleButton = compactButton("☰");
         viewToggleButton.setTextSize(22);
         viewToggleButton.setOnClickListener(view -> toggleMonthView());
@@ -349,15 +354,6 @@ public final class MainActivity extends Activity {
         selectedDayCount.setTextSize(15);
         selectedDayCount.setPadding(0, dp(2), 0, dp(10));
         panel.addView(selectedDayCount);
-
-        Button chooseDateButton = new Button(this);
-        chooseDateButton.setText("Choose date");
-        chooseDateButton.setAllCaps(false);
-        chooseDateButton.setOnClickListener(view -> showCalendarDialog());
-        panel.addView(chooseDateButton, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
 
         LinearLayout addRow = new LinearLayout(this);
         addRow.setGravity(Gravity.CENTER_VERTICAL);
