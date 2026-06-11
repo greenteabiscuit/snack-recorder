@@ -33,8 +33,10 @@ import java.text.DateFormatSymbols;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public final class MainActivity extends Activity {
     private static final int ORANGE = Color.rgb(249, 115, 22);
@@ -421,7 +423,7 @@ public final class MainActivity extends Activity {
         panel.addView(monthSummary);
 
         TextView hint = new TextView(this);
-        hint.setText("Swipe left/right for next/previous month. Tap a snack to open that day.");
+        hint.setText("Swipe left/right for next/previous month. Tap a day to open it.");
         hint.setTextColor(TEXT_MUTED);
         hint.setTextSize(13);
         hint.setPadding(0, 0, 0, dp(8));
@@ -590,39 +592,66 @@ public final class MainActivity extends Activity {
         int year = visibleMonth.get(Calendar.YEAR);
         int month = visibleMonth.get(Calendar.MONTH);
         List<SnackDay> monthDays = snackStore.getDaysInMonth(year, month);
+        Map<String, SnackDay> daysByDate = new HashMap<>();
         int snackCount = 0;
+        int snackDays = 0;
 
         monthTitle.setText(monthNames[month] + " " + year);
         monthListAdapter.clear();
         monthRowDates.clear();
 
         for (SnackDay day : monthDays) {
+            daysByDate.put(day.getDateIso(), day);
+        }
+
+        Calendar cursor = firstDayOfMonth(visibleMonth);
+        int daysInMonth = cursor.getActualMaximum(Calendar.DAY_OF_MONTH);
+        for (int dayOfMonth = 1; dayOfMonth <= daysInMonth; dayOfMonth++) {
+            cursor.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+            String dateIso = isoDateFormat.format(cursor.getTime());
+            SnackDay day = daysByDate.get(dateIso);
             Calendar dayCalendar = Calendar.getInstance();
-            try {
-                dayCalendar.setTime(isoDateFormat.parse(day.getDateIso()));
-            } catch (Exception ignored) {
-            }
+            dayCalendar.setTime(cursor.getTime());
 
-            for (String snack : day.getSnacks()) {
-                snackCount++;
-                monthRowDates.add(day.getDateIso());
-                monthListAdapter.add(compactDateFormat.format(dayCalendar.getTime()) + "  ·  " + snack);
+            monthRowDates.add(dateIso);
+            if (day == null || day.getSnackCount() == 0) {
+                monthListAdapter.add(compactDateFormat.format(dayCalendar.getTime()) + "  ·  No snacks");
+            } else {
+                snackDays++;
+                snackCount += day.getSnackCount();
+                monthListAdapter.add(
+                        compactDateFormat.format(dayCalendar.getTime())
+                                + "  ·  "
+                                + day.getSnackCount()
+                                + " snack"
+                                + (day.getSnackCount() == 1 ? "" : "s")
+                                + "  ·  "
+                                + formatSnackList(day.getSnacks())
+                );
             }
         }
 
-        if (snackCount == 0) {
-            monthListAdapter.add("No snacks recorded this month");
-        }
-
-        int recordedDays = monthDays.size();
+        int snackFreeDays = daysInMonth - snackDays;
         monthSummary.setText(
                 snackCount + " snack" + (snackCount == 1 ? "" : "s")
                         + " · "
-                        + recordedDays + " day" + (recordedDays == 1 ? "" : "s")
-                        + " recorded this month"
+                        + snackDays + " snack day" + (snackDays == 1 ? "" : "s")
+                        + " · "
+                        + snackFreeDays + " snack-free day" + (snackFreeDays == 1 ? "" : "s")
         );
         monthAddDateLabel.setText("Add a snack with a date in " + monthNames[month]);
         monthListAdapter.notifyDataSetChanged();
+    }
+
+    private String formatSnackList(List<String> snacks) {
+        StringBuilder list = new StringBuilder();
+        for (int i = 0; i < snacks.size(); i++) {
+            if (i > 0) {
+                list.append(", ");
+            }
+            list.append(snacks.get(i));
+        }
+        return list.toString();
     }
 
     private void exportCsv() {

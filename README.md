@@ -20,7 +20,8 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Selected-day snack list
 - Header list icon toggles between individual-day mode and monthly snack-list mode
 - Header crosshair button slides back to the current date/current month
-- Monthly snack-list mode shows all snacks eaten in one month on one screen
+- Monthly snack-list mode shows every day in one month, including snack-free days
+- Monthly summary shows snack count, snack days, and snack-free days
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
 - Swipe left/right in monthly mode to move to the next/previous month
 - Swipe left/right on the main screen to move to the next/previous day
