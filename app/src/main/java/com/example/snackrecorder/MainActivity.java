@@ -580,8 +580,10 @@ public final class MainActivity extends Activity {
             cell.setBackground(dayBackground(selected, today, snackCount));
             cell.setOnClickListener(view -> {
                 selectedDateIso = cellDateIso;
+                visibleMonth = firstDayOfMonth(cellDate);
                 renderCalendar();
                 renderSelectedDay();
+                renderMonthView();
                 if (calendarDialog != null) {
                     calendarDialog.dismiss();
                 }
