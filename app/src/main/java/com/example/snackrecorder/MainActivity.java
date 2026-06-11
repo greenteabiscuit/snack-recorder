@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
@@ -45,6 +46,8 @@ public final class MainActivity extends Activity {
     private static final int BACKGROUND = Color.rgb(255, 247, 237);
     private static final int TEXT_DARK = Color.rgb(67, 20, 7);
     private static final int TEXT_MUTED = Color.rgb(120, 113, 108);
+    private static final int SATURDAY_BLUE = Color.rgb(37, 99, 235);
+    private static final int SUNDAY_RED = Color.rgb(220, 38, 38);
     private static final int MIN_SWIPE_DISTANCE_DP = 72;
     private static final int REQUEST_CREATE_CSV = 1001;
     private static final int SLIDE_DISTANCE_DP = 56;
@@ -52,6 +55,7 @@ public final class MainActivity extends Activity {
     private final SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
     private final SimpleDateFormat friendlyDateFormat = new SimpleDateFormat("EEE, MMM d, yyyy", Locale.US);
     private final SimpleDateFormat compactDateFormat = new SimpleDateFormat("MMM d", Locale.US);
+    private final SimpleDateFormat weekdayFormat = new SimpleDateFormat("EEE", Locale.US);
     private final ArrayList<TextView> dayCells = new ArrayList<>();
     private final ArrayList<String> monthRowDates = new ArrayList<>();
     private final String[] monthNames = new DateFormatSymbols(Locale.US).getMonths();
@@ -444,7 +448,17 @@ public final class MainActivity extends Activity {
         ));
 
         ListView monthList = new ListView(this);
-        monthListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
+        monthListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new ArrayList<>()) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View row = super.getView(position, convertView, parent);
+                if (row instanceof TextView) {
+                    TextView textView = (TextView) row;
+                    textView.setTextColor(monthRowTextColor(position));
+                }
+                return row;
+            }
+        };
         monthList.setAdapter(monthListAdapter);
         monthList.setOnItemClickListener((parent, view, position, id) -> {
             if (position < 0 || position >= monthRowDates.size()) {
@@ -614,13 +628,17 @@ public final class MainActivity extends Activity {
             dayCalendar.setTime(cursor.getTime());
 
             monthRowDates.add(dateIso);
+            String dayLabel = compactDateFormat.format(dayCalendar.getTime())
+                    + " ("
+                    + weekdayFormat.format(dayCalendar.getTime())
+                    + ")";
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(compactDateFormat.format(dayCalendar.getTime()) + "  ·  ");
+                monthListAdapter.add(dayLabel + "  ·  ");
             } else {
                 snackDays++;
                 snackCount += day.getSnackCount();
                 monthListAdapter.add(
-                        compactDateFormat.format(dayCalendar.getTime())
+                        dayLabel
                                 + "  ·  "
                                 + formatSnackList(day.getSnacks())
                 );
@@ -648,6 +666,28 @@ public final class MainActivity extends Activity {
             list.append(snacks.get(i));
         }
         return list.toString();
+    }
+
+    private int monthRowTextColor(int position) {
+        if (position < 0 || position >= monthRowDates.size()) {
+            return TEXT_DARK;
+        }
+
+        Calendar rowDate = Calendar.getInstance();
+        try {
+            rowDate.setTime(isoDateFormat.parse(monthRowDates.get(position)));
+        } catch (Exception ignored) {
+            return TEXT_DARK;
+        }
+
+        int dayOfWeek = rowDate.get(Calendar.DAY_OF_WEEK);
+        if (dayOfWeek == Calendar.SATURDAY) {
+            return SATURDAY_BLUE;
+        }
+        if (dayOfWeek == Calendar.SUNDAY) {
+            return SUNDAY_RED;
+        }
+        return TEXT_DARK;
     }
 
     private void exportCsv() {
