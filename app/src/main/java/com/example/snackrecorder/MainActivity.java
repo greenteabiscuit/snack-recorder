@@ -615,7 +615,7 @@ public final class MainActivity extends Activity {
 
             monthRowDates.add(dateIso);
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(compactDateFormat.format(dayCalendar.getTime()) + "  ·  No snacks");
+                monthListAdapter.add(compactDateFormat.format(dayCalendar.getTime()) + "  ·  ");
             } else {
                 snackDays++;
                 snackCount += day.getSnackCount();
