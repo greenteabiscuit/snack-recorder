@@ -24,6 +24,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Calendar date picker supports left/right swipe with slide animation to change months
 - Monthly snack-list mode shows every day in one month, including snack-free days
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red
+- Monthly rows align snack names in a separate column from the date/weekday label
 - Monthly summary shows snack count, snack days, and snack-free days
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
 - Tapping a day in monthly mode opens the add-snack modal for that date without leaving monthly mode

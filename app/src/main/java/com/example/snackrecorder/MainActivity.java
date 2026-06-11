@@ -14,6 +14,7 @@ import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
@@ -83,7 +84,7 @@ public final class MainActivity extends Activity {
     private TextView monthAddDateLabel;
     private EditText snackInput;
     private LinearLayout snackListContainer;
-    private ArrayAdapter<CharSequence> monthListAdapter;
+    private ArrayAdapter<MonthRow> monthListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -434,7 +435,46 @@ public final class MainActivity extends Activity {
         ));
 
         ListView monthList = new ListView(this);
-        monthListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
+        monthListAdapter = new ArrayAdapter<MonthRow>(this, 0, new ArrayList<>()) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                LinearLayout row;
+                TextView dateText;
+                TextView snackText;
+                if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 2) {
+                    row = (LinearLayout) convertView;
+                    dateText = (TextView) row.getChildAt(0);
+                    snackText = (TextView) row.getChildAt(1);
+                } else {
+                    row = new LinearLayout(MainActivity.this);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(0, dp(8), 0, dp(8));
+
+                    dateText = new TextView(MainActivity.this);
+                    dateText.setTextSize(16);
+                    row.addView(dateText, new LinearLayout.LayoutParams(
+                            dp(108),
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                    ));
+
+                    snackText = new TextView(MainActivity.this);
+                    snackText.setTextColor(TEXT_DARK);
+                    snackText.setTextSize(16);
+                    row.addView(snackText, new LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            1f
+                    ));
+                }
+
+                MonthRow monthRow = getItem(position);
+                if (monthRow != null) {
+                    dateText.setText(monthRow.dateLabel);
+                    snackText.setText(monthRow.snacks);
+                }
+                return row;
+            }
+        };
         monthList.setAdapter(monthListAdapter);
         monthList.setOnItemClickListener((parent, view, position, id) -> {
             if (position < 0 || position >= monthRowDates.size()) {
@@ -751,16 +791,16 @@ public final class MainActivity extends Activity {
             dayCalendar.setTime(cursor.getTime());
 
             monthRowDates.add(dateIso);
-            String dayLabel = compactDateFormat.format(dayCalendar.getTime())
+            String dateLabel = compactDateFormat.format(dayCalendar.getTime())
                     + " ("
                     + weekdayFormat.format(dayCalendar.getTime())
                     + ")";
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(formatMonthRow(dayCalendar, dayLabel + "  ·  "));
+                monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), ""));
             } else {
                 snackDays++;
                 snackCount += day.getSnackCount();
-                monthListAdapter.add(formatMonthRow(dayCalendar, dayLabel + "  ·  " + formatSnackList(day.getSnacks())));
+                monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), formatSnackList(day.getSnacks())));
             }
         }
 
@@ -787,7 +827,7 @@ public final class MainActivity extends Activity {
         return list.toString();
     }
 
-    private CharSequence formatMonthRow(Calendar dayCalendar, String rowText) {
+    private CharSequence formatDateLabel(Calendar dayCalendar, String dateLabel) {
         int dayOfWeek = dayCalendar.get(Calendar.DAY_OF_WEEK);
         int color = TEXT_DARK;
         if (dayOfWeek == Calendar.SATURDAY) {
@@ -795,16 +835,16 @@ public final class MainActivity extends Activity {
         } else if (dayOfWeek == Calendar.SUNDAY) {
             color = SUNDAY_RED;
         } else {
-            return rowText;
+            return dateLabel;
         }
 
-        int weekdayStart = rowText.indexOf('(');
-        int weekdayEnd = rowText.indexOf(')', weekdayStart);
+        int weekdayStart = dateLabel.indexOf('(');
+        int weekdayEnd = dateLabel.indexOf(')', weekdayStart);
         if (weekdayStart < 0 || weekdayEnd < weekdayStart) {
-            return rowText;
+            return dateLabel;
         }
 
-        SpannableString styledRow = new SpannableString(rowText);
+        SpannableString styledRow = new SpannableString(dateLabel);
         styledRow.setSpan(
                 new ForegroundColorSpan(color),
                 weekdayStart,
@@ -812,6 +852,16 @@ public final class MainActivity extends Activity {
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         );
         return styledRow;
+    }
+
+    private static final class MonthRow {
+        private final CharSequence dateLabel;
+        private final String snacks;
+
+        private MonthRow(CharSequence dateLabel, String snacks) {
+            this.dateLabel = dateLabel;
+            this.snacks = snacks;
+        }
     }
 
     private void exportCsv() {
