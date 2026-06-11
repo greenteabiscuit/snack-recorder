@@ -413,7 +413,7 @@ public final class MainActivity extends Activity {
         panel.addView(monthSummary);
 
         TextView hint = new TextView(this);
-        hint.setText("Swipe left/right for next/previous month. Tap a day to open it.");
+        hint.setText("Swipe left/right for next/previous month. Tap a day to add a snack for it.");
         hint.setTextColor(TEXT_MUTED);
         hint.setTextSize(13);
         hint.setPadding(0, 0, 0, dp(8));
@@ -441,8 +441,13 @@ public final class MainActivity extends Activity {
                 return;
             }
 
-            selectedDateIso = monthRowDates.get(position);
-            toggleMonthView();
+            Calendar rowDate = Calendar.getInstance();
+            try {
+                rowDate.setTime(isoDateFormat.parse(monthRowDates.get(position)));
+            } catch (Exception ignored) {
+                return;
+            }
+            showAddSnackDialog(rowDate);
         });
         panel.addView(monthList, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -859,8 +864,10 @@ public final class MainActivity extends Activity {
     }
 
     private void showAddSnackDialog() {
-        Calendar defaultDate = monthAddDateCalendar();
+        showAddSnackDialog(monthAddDateCalendar());
+    }
 
+    private void showAddSnackDialog(Calendar defaultDate) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);

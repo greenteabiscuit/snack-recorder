@@ -26,6 +26,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red
 - Monthly summary shows snack count, snack days, and snack-free days
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
+- Tapping a day in monthly mode opens the add-snack modal for that date without leaving monthly mode
 - Swipe left/right in monthly mode to move to the next/previous month
 - Swipe left/right on the main screen to move to the next/previous day
 - Swipe transitions use a quick slide animation
