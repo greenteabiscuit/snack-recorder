@@ -8,10 +8,12 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
@@ -80,7 +82,7 @@ public final class MainActivity extends Activity {
     private TextView monthAddDateLabel;
     private EditText snackInput;
     private ArrayAdapter<String> snackListAdapter;
-    private ArrayAdapter<String> monthListAdapter;
+    private ArrayAdapter<CharSequence> monthListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -448,17 +450,7 @@ public final class MainActivity extends Activity {
         ));
 
         ListView monthList = new ListView(this);
-        monthListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new ArrayList<>()) {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                View row = super.getView(position, convertView, parent);
-                if (row instanceof TextView) {
-                    TextView textView = (TextView) row;
-                    textView.setTextColor(monthRowTextColor(position));
-                }
-                return row;
-            }
-        };
+        monthListAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
         monthList.setAdapter(monthListAdapter);
         monthList.setOnItemClickListener((parent, view, position, id) -> {
             if (position < 0 || position >= monthRowDates.size()) {
@@ -633,15 +625,11 @@ public final class MainActivity extends Activity {
                     + weekdayFormat.format(dayCalendar.getTime())
                     + ")";
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(dayLabel + "  ·  ");
+                monthListAdapter.add(formatMonthRow(dayCalendar, dayLabel + "  ·  "));
             } else {
                 snackDays++;
                 snackCount += day.getSnackCount();
-                monthListAdapter.add(
-                        dayLabel
-                                + "  ·  "
-                                + formatSnackList(day.getSnacks())
-                );
+                monthListAdapter.add(formatMonthRow(dayCalendar, dayLabel + "  ·  " + formatSnackList(day.getSnacks())));
             }
         }
 
@@ -668,26 +656,31 @@ public final class MainActivity extends Activity {
         return list.toString();
     }
 
-    private int monthRowTextColor(int position) {
-        if (position < 0 || position >= monthRowDates.size()) {
-            return TEXT_DARK;
-        }
-
-        Calendar rowDate = Calendar.getInstance();
-        try {
-            rowDate.setTime(isoDateFormat.parse(monthRowDates.get(position)));
-        } catch (Exception ignored) {
-            return TEXT_DARK;
-        }
-
-        int dayOfWeek = rowDate.get(Calendar.DAY_OF_WEEK);
+    private CharSequence formatMonthRow(Calendar dayCalendar, String rowText) {
+        int dayOfWeek = dayCalendar.get(Calendar.DAY_OF_WEEK);
+        int color = TEXT_DARK;
         if (dayOfWeek == Calendar.SATURDAY) {
-            return SATURDAY_BLUE;
+            color = SATURDAY_BLUE;
+        } else if (dayOfWeek == Calendar.SUNDAY) {
+            color = SUNDAY_RED;
+        } else {
+            return rowText;
         }
-        if (dayOfWeek == Calendar.SUNDAY) {
-            return SUNDAY_RED;
+
+        int weekdayStart = rowText.indexOf('(');
+        int weekdayEnd = rowText.indexOf(')', weekdayStart);
+        if (weekdayStart < 0 || weekdayEnd < weekdayStart) {
+            return rowText;
         }
-        return TEXT_DARK;
+
+        SpannableString styledRow = new SpannableString(rowText);
+        styledRow.setSpan(
+                new ForegroundColorSpan(color),
+                weekdayStart,
+                weekdayEnd + 1,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        );
+        return styledRow;
     }
 
     private void exportCsv() {
