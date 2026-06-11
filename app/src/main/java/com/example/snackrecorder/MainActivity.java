@@ -1101,7 +1101,7 @@ public final class MainActivity extends Activity {
     private List<String> yearOptions() {
         int currentYear = Calendar.getInstance().get(Calendar.YEAR);
         ArrayList<String> years = new ArrayList<>();
-        for (int year = currentYear - 20; year <= currentYear + 20; year++) {
+        for (int year = currentYear; year >= currentYear - 40; year--) {
             years.add(String.valueOf(year));
         }
         return years;

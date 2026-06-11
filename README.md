@@ -15,7 +15,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 ## UI
 
 - Month calendar grid with per-day snack counts
-- Month and year spinners for fast navigation
+- Month and year spinners for fast navigation; year choices include current and past years only
 - Previous/next month and previous/next year buttons
 - Selected-day snack list
 - Header list icon toggles between individual-day mode and monthly snack-list mode
