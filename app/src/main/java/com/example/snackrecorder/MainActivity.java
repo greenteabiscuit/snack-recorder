@@ -39,6 +39,7 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.MultiAutoCompleteTextView;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -1459,16 +1460,18 @@ public final class MainActivity extends Activity {
         allTimeRankingContent.removeAllViews();
         allTimeRankingContent.setVisibility(allTimeRankingsExpanded ? View.VISIBLE : View.GONE);
         if (allTimeRankingsExpanded) {
-            addRankingSection(allTimeRankingContent, "Most eaten snacks of all time", rankingRows(false, null));
-            addRankingSection(allTimeRankingContent, "Most eaten makers of all time", rankingRows(true, null));
+            addRankingSection(allTimeRankingContent, "Most eaten snack names of all time", rankingRows(false, false, null));
+            addRankingSection(allTimeRankingContent, "Overall snacks of all time", rankingRows(false, true, null));
+            addRankingSection(allTimeRankingContent, "Most eaten makers of all time", rankingRows(true, false, null));
         }
 
         updateRankingToggleButton(yearlyRankingToggleButton, "Yearly rankings", yearlyRankingsExpanded);
         yearlyRankingSection.setVisibility(yearlyRankingsExpanded ? View.VISIBLE : View.GONE);
         rankingContent.removeAllViews();
         if (yearlyRankingsExpanded) {
-            addRankingSection("Most eaten snacks in " + selectedRankingYear, rankingRows(false, selectedRankingYear));
-            addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, selectedRankingYear));
+            addRankingSection("Most eaten snack names in " + selectedRankingYear, rankingRows(false, false, selectedRankingYear));
+            addRankingSection("Overall snacks in " + selectedRankingYear, rankingRows(false, true, selectedRankingYear));
+            addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, false, selectedRankingYear));
         }
     }
 
@@ -1539,7 +1542,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private List<RankingRow> rankingRows(boolean makerRanking, Integer year) {
+    private List<RankingRow> rankingRows(boolean makerRanking, boolean includeOtherSnacks, Integer year) {
         HashMap<String, Integer> counts = new HashMap<>();
         HashMap<String, String> labels = new HashMap<>();
         String yearPrefix = year == null ? null : String.format(Locale.US, "%04d-", year);
@@ -1553,8 +1556,10 @@ public final class MainActivity extends Activity {
                     countRankingValue(counts, labels, snack.getMaker());
                 } else {
                     countRankingValue(counts, labels, snack.getName());
-                    for (String otherSnack : snack.getOtherSnacks()) {
-                        countRankingValue(counts, labels, otherSnack);
+                    if (includeOtherSnacks) {
+                        for (String otherSnack : snack.getOtherSnacks()) {
+                            countRankingValue(counts, labels, otherSnack);
+                        }
                     }
                 }
             }
@@ -2071,12 +2076,18 @@ public final class MainActivity extends Activity {
     }
 
     private EditText createOtherSnacksInput() {
-        EditText input = new EditText(this);
+        MultiAutoCompleteTextView input = new MultiAutoCompleteTextView(this);
         input.setSingleLine(false);
         input.setMinLines(2);
         input.setMaxLines(4);
         input.setHint("Other snacks (optional, one per line)");
         input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        input.setThreshold(1);
+        input.setAdapter(new SnackSuggestionAdapter());
+        input.setTokenizer(new NewlineTokenizer());
+        int dropDownHeight = dp(SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP);
+        input.setDropDownHeight(dropDownHeight);
+        input.post(() -> input.setDropDownVerticalOffset(-input.getHeight() - dropDownHeight));
         return input;
     }
 
@@ -2161,6 +2172,41 @@ public final class MainActivity extends Activity {
         @Override
         public Filter getFilter() {
             return filter;
+        }
+    }
+
+    private static final class NewlineTokenizer implements MultiAutoCompleteTextView.Tokenizer {
+        @Override
+        public int findTokenStart(CharSequence text, int cursor) {
+            int tokenStart = cursor;
+            while (tokenStart > 0 && text.charAt(tokenStart - 1) != '\n') {
+                tokenStart--;
+            }
+            while (tokenStart < cursor && text.charAt(tokenStart) == ' ') {
+                tokenStart++;
+            }
+            return tokenStart;
+        }
+
+        @Override
+        public int findTokenEnd(CharSequence text, int cursor) {
+            int tokenEnd = cursor;
+            while (tokenEnd < text.length()) {
+                if (text.charAt(tokenEnd) == '\n') {
+                    return tokenEnd;
+                }
+                tokenEnd++;
+            }
+            return text.length();
+        }
+
+        @Override
+        public CharSequence terminateToken(CharSequence text) {
+            String completedText = text == null ? "" : text.toString().trim();
+            if (completedText.endsWith("\n")) {
+                return completedText;
+            }
+            return completedText + "\n";
         }
     }
 
