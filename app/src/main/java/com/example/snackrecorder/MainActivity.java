@@ -98,6 +98,8 @@ public final class MainActivity extends Activity {
     private float touchDownY;
     private boolean monthView;
     private boolean rankingView;
+    private boolean allTimeRankingsExpanded;
+    private boolean yearlyRankingsExpanded;
     private boolean slideInProgress;
     private Spinner monthSpinner;
     private Spinner yearSpinner;
@@ -108,7 +110,10 @@ public final class MainActivity extends Activity {
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
     private LinearLayout rankingPanel;
+    private Button allTimeRankingToggleButton;
+    private Button yearlyRankingToggleButton;
     private LinearLayout allTimeRankingContent;
+    private LinearLayout yearlyRankingSection;
     private LinearLayout rankingContent;
     private TextView selectedDayTitle;
     private TextView selectedDayCount;
@@ -609,13 +614,37 @@ public final class MainActivity extends Activity {
         hint.setPadding(0, dp(2), 0, dp(8));
         panel.addView(hint);
 
+        allTimeRankingToggleButton = rankingToggleButton("All-time rankings");
+        allTimeRankingToggleButton.setOnClickListener(view -> {
+            allTimeRankingsExpanded = !allTimeRankingsExpanded;
+            renderRankingView();
+        });
+        panel.addView(allTimeRankingToggleButton, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
         allTimeRankingContent = new LinearLayout(this);
         allTimeRankingContent.setOrientation(LinearLayout.VERTICAL);
         panel.addView(allTimeRankingContent);
 
+        yearlyRankingToggleButton = rankingToggleButton("Yearly rankings");
+        yearlyRankingToggleButton.setOnClickListener(view -> {
+            yearlyRankingsExpanded = !yearlyRankingsExpanded;
+            renderRankingView();
+        });
+        panel.addView(yearlyRankingToggleButton, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        yearlyRankingSection = new LinearLayout(this);
+        yearlyRankingSection.setOrientation(LinearLayout.VERTICAL);
+        panel.addView(yearlyRankingSection);
+
         LinearLayout yearRow = new LinearLayout(this);
         yearRow.setGravity(Gravity.CENTER_VERTICAL);
-        yearRow.setPadding(0, dp(20), 0, dp(8));
+        yearRow.setPadding(0, dp(8), 0, dp(8));
 
         TextView yearLabel = new TextView(this);
         yearLabel.setText("Year");
@@ -647,12 +676,12 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f
         ));
-        panel.addView(yearRow);
+        yearlyRankingSection.addView(yearRow);
         selectRankingYearSpinnerValue();
 
         rankingContent = new LinearLayout(this);
         rankingContent.setOrientation(LinearLayout.VERTICAL);
-        panel.addView(rankingContent, new LinearLayout.LayoutParams(
+        yearlyRankingSection.addView(rankingContent, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
@@ -1029,17 +1058,40 @@ public final class MainActivity extends Activity {
     }
 
     private void renderRankingView() {
-        if (allTimeRankingContent == null || rankingContent == null) {
+        if (allTimeRankingToggleButton == null || yearlyRankingToggleButton == null
+                || allTimeRankingContent == null || yearlyRankingSection == null || rankingContent == null) {
             return;
         }
 
+        updateRankingToggleButton(allTimeRankingToggleButton, "All-time rankings", allTimeRankingsExpanded);
         allTimeRankingContent.removeAllViews();
-        addRankingSection(allTimeRankingContent, "Most eaten snacks of all time", rankingRows(false, null));
-        addRankingSection(allTimeRankingContent, "Most eaten makers of all time", rankingRows(true, null));
+        allTimeRankingContent.setVisibility(allTimeRankingsExpanded ? View.VISIBLE : View.GONE);
+        if (allTimeRankingsExpanded) {
+            addRankingSection(allTimeRankingContent, "Most eaten snacks of all time", rankingRows(false, null));
+            addRankingSection(allTimeRankingContent, "Most eaten makers of all time", rankingRows(true, null));
+        }
 
+        updateRankingToggleButton(yearlyRankingToggleButton, "Yearly rankings", yearlyRankingsExpanded);
+        yearlyRankingSection.setVisibility(yearlyRankingsExpanded ? View.VISIBLE : View.GONE);
         rankingContent.removeAllViews();
-        addRankingSection("Most eaten snacks in " + selectedRankingYear, rankingRows(false, selectedRankingYear));
-        addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, selectedRankingYear));
+        if (yearlyRankingsExpanded) {
+            addRankingSection("Most eaten snacks in " + selectedRankingYear, rankingRows(false, selectedRankingYear));
+            addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, selectedRankingYear));
+        }
+    }
+
+    private Button rankingToggleButton(String title) {
+        Button button = new Button(this);
+        button.setAllCaps(false);
+        button.setTextSize(16);
+        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        button.setPadding(0, dp(6), 0, dp(6));
+        updateRankingToggleButton(button, title, false);
+        return button;
+    }
+
+    private void updateRankingToggleButton(Button button, String title, boolean expanded) {
+        button.setText((expanded ? "▾ " : "▸ ") + title);
     }
 
     private void addRankingSection(String title, List<RankingRow> rows) {
