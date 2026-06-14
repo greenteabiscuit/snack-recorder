@@ -38,9 +38,8 @@ final class SnackStore {
         TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
         for (ArrayList<SnackRecord> snacks : sortedDays.values()) {
             for (SnackRecord snack : snacks) {
-                String normalizedSnack = snack.getName().toLowerCase(Locale.US);
-                snackCounts.put(normalizedSnack, snackCounts.getOrDefault(normalizedSnack, 0) + 1);
-                displayNames.putIfAbsent(normalizedSnack, snack.getName());
+                countSuggestion(snackCounts, displayNames, snack.getName());
+                countSuggestion(snackCounts, displayNames, snack.getMaker());
             }
         }
 
@@ -63,6 +62,17 @@ final class SnackStore {
             return left.compareTo(right);
         });
         return snackNames;
+    }
+
+    private void countSuggestion(HashMap<String, Integer> snackCounts, HashMap<String, String> displayNames, String value) {
+        String suggestion = value == null ? "" : value.trim();
+        if (suggestion.isEmpty()) {
+            return;
+        }
+
+        String normalizedSuggestion = suggestion.toLowerCase(Locale.US);
+        snackCounts.put(normalizedSuggestion, snackCounts.getOrDefault(normalizedSuggestion, 0) + 1);
+        displayNames.putIfAbsent(normalizedSuggestion, suggestion);
     }
 
     List<SnackDay> getDaysInMonth(int year, int monthZeroBased) {

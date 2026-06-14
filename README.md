@@ -28,7 +28,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Monthly summary shows snack days
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
 - Tapping a day in monthly mode opens a fixed-date add-snack modal without leaving monthly mode
-- Snack and maker entry fields autocomplete up to 3 suggestions above the input after the first typed letter, prioritizing previous snack names by frequency then alphabetical order
+- Snack and maker entry fields autocomplete up to 3 suggestions above the input after the first typed letter, prioritizing previous snack and maker values by frequency then alphabetical order
 - Swipe left/right in monthly mode to move to the next/previous month
 - Swipe left/right on the main screen to move to the next/previous day
 - Swipe transitions use a quick slide animation
