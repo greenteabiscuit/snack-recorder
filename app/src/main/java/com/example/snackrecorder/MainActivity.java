@@ -644,6 +644,8 @@ public final class MainActivity extends Activity {
         ));
 
         ListView monthList = new ListView(this);
+        monthList.setDivider(null);
+        monthList.setDividerHeight(0);
         monthListAdapter = new ArrayAdapter<MonthRow>(this, 0, new ArrayList<>()) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
@@ -1138,6 +1140,7 @@ public final class MainActivity extends Activity {
         List<SnackDay> monthDays = snackStore.getDaysInMonth(year, month);
         Map<String, SnackDay> daysByDate = new HashMap<>();
         int snackDays = 0;
+        int snackEvents = 0;
 
         monthTitle.setText(monthNames[month] + " " + year);
         monthListAdapter.clear();
@@ -1165,6 +1168,7 @@ public final class MainActivity extends Activity {
             } else {
                 snackDays++;
                 List<SnackRecord> snacks = day.getSnacks();
+                snackEvents += snacks.size();
                 for (int snackIndex = 0; snackIndex < snacks.size(); snackIndex++) {
                     CharSequence rowDateLabel = snackIndex == 0 ? styledDateLabel : "";
                     monthListAdapter.add(MonthRow.snackDay(
@@ -1178,7 +1182,11 @@ public final class MainActivity extends Activity {
             }
         }
 
-        monthSummary.setText(snackDays + " snack day" + (snackDays == 1 ? "" : "s"));
+        monthSummary.setText(
+                snackEvents + " snack event" + (snackEvents == 1 ? "" : "s")
+                        + " · "
+                        + snackDays + " snack day" + (snackDays == 1 ? "" : "s")
+        );
         monthAddDateLabel.setText("Add a snack with a date in " + monthNames[month]);
         monthListAdapter.notifyDataSetChanged();
     }
