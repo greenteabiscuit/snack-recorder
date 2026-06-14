@@ -102,6 +102,7 @@ public final class MainActivity extends Activity {
     private boolean slideInProgress;
     private Spinner monthSpinner;
     private Spinner yearSpinner;
+    private Spinner rankingYearSpinner;
     private Button viewToggleButton;
     private Button rankingButton;
     private GridLayout calendarGrid;
@@ -118,6 +119,7 @@ public final class MainActivity extends Activity {
     private AutoCompleteTextView makerInput;
     private LinearLayout snackListContainer;
     private ArrayAdapter<MonthRow> monthListAdapter;
+    private int selectedRankingYear;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,6 +129,7 @@ public final class MainActivity extends Activity {
         Calendar today = Calendar.getInstance();
         selectedDateIso = isoDateFormat.format(today.getTime());
         visibleMonth = firstDayOfMonth(today);
+        selectedRankingYear = today.get(Calendar.YEAR);
 
         setContentView(createContentView());
         renderSelectedDay();
@@ -593,11 +596,48 @@ public final class MainActivity extends Activity {
         panel.addView(title);
 
         TextView hint = new TextView(this);
-        hint.setText("POC ranking page for favorite snacks and makers.");
+        hint.setText("Select a year for yearly rankings. All-time rankings stay fixed below.");
         hint.setTextColor(TEXT_MUTED);
         hint.setTextSize(13);
         hint.setPadding(0, dp(2), 0, dp(8));
         panel.addView(hint);
+
+        LinearLayout yearRow = new LinearLayout(this);
+        yearRow.setGravity(Gravity.CENTER_VERTICAL);
+        yearRow.setPadding(0, 0, 0, dp(8));
+
+        TextView yearLabel = new TextView(this);
+        yearLabel.setText("Year");
+        yearLabel.setTextColor(TEXT_DARK);
+        yearLabel.setTextSize(16);
+        yearLabel.setTypeface(Typeface.DEFAULT_BOLD);
+        yearRow.addView(yearLabel);
+
+        rankingYearSpinner = new Spinner(this);
+        ArrayAdapter<String> rankingYearAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, yearOptions());
+        rankingYearAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        rankingYearSpinner.setAdapter(rankingYearAdapter);
+        rankingYearSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, android.view.View view, int position, long id) {
+                int year = Integer.parseInt((String) parent.getItemAtPosition(position));
+                if (selectedRankingYear != year) {
+                    selectedRankingYear = year;
+                    renderRankingView();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+        yearRow.addView(rankingYearSpinner, new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+        panel.addView(yearRow);
+        selectRankingYearSpinnerValue();
 
         ScrollView scrollView = new ScrollView(this);
         rankingContent = new LinearLayout(this);
@@ -976,10 +1016,9 @@ public final class MainActivity extends Activity {
         }
 
         rankingContent.removeAllViews();
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        addRankingSection("Most eaten snacks in " + currentYear, rankingRows(false, currentYear));
+        addRankingSection("Most eaten snacks in " + selectedRankingYear, rankingRows(false, selectedRankingYear));
+        addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, selectedRankingYear));
         addRankingSection("Most eaten snacks of all time", rankingRows(false, null));
-        addRankingSection("Most eaten makers in " + currentYear, rankingRows(true, currentYear));
         addRankingSection("Most eaten makers of all time", rankingRows(true, null));
     }
 
@@ -1229,6 +1268,7 @@ public final class MainActivity extends Activity {
             renderCalendar();
             renderSelectedDay();
             renderMonthView();
+            renderRankingView();
             dialog.dismiss();
         };
         snackInput.setOnEditorActionListener((view, actionId, event) -> {
@@ -1411,6 +1451,19 @@ public final class MainActivity extends Activity {
         for (int i = 0; i < yearSpinner.getCount(); i++) {
             if (String.valueOf(year).equals(yearSpinner.getItemAtPosition(i))) {
                 yearSpinner.setSelection(i);
+                return;
+            }
+        }
+    }
+
+    private void selectRankingYearSpinnerValue() {
+        if (rankingYearSpinner == null) {
+            return;
+        }
+
+        for (int i = 0; i < rankingYearSpinner.getCount(); i++) {
+            if (String.valueOf(selectedRankingYear).equals(rankingYearSpinner.getItemAtPosition(i))) {
+                rankingYearSpinner.setSelection(i);
                 return;
             }
         }
