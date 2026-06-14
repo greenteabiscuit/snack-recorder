@@ -608,7 +608,7 @@ public final class MainActivity extends Activity {
 
         LinearLayout yearRow = new LinearLayout(this);
         yearRow.setGravity(Gravity.CENTER_VERTICAL);
-        yearRow.setPadding(0, 0, 0, dp(8));
+        yearRow.setPadding(0, dp(20), 0, dp(8));
 
         TextView yearLabel = new TextView(this);
         yearLabel.setText("Year");
