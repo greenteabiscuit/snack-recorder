@@ -87,6 +87,15 @@ final class SnackStore {
         return monthDays;
     }
 
+    List<SnackDay> getAllDays() {
+        ArrayList<SnackDay> days = new ArrayList<>();
+        TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
+        for (Map.Entry<String, ArrayList<SnackRecord>> entry : sortedDays.entrySet()) {
+            days.add(new SnackDay(entry.getKey(), entry.getValue()));
+        }
+        return days;
+    }
+
     void addSnack(String dateIso, String snack, String maker) {
         Map<String, ArrayList<SnackRecord>> days = loadDays();
         ArrayList<SnackRecord> snacks = days.get(dateIso);

@@ -30,6 +30,7 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -59,6 +60,7 @@ public final class MainActivity extends Activity {
     private static final int SLIDE_DISTANCE_DP = 56;
     private static final int MAX_SNACK_SUGGESTIONS = 3;
     private static final int SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP = 144;
+    private static final int MAX_RANKING_ROWS = 10;
     private static final String[] COMMON_SNACKS = {
             "Almonds",
             "Apple",
@@ -96,13 +98,17 @@ public final class MainActivity extends Activity {
     private float touchDownX;
     private float touchDownY;
     private boolean monthView;
+    private boolean rankingView;
     private boolean slideInProgress;
     private Spinner monthSpinner;
     private Spinner yearSpinner;
     private Button viewToggleButton;
+    private Button rankingButton;
     private GridLayout calendarGrid;
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
+    private LinearLayout rankingPanel;
+    private LinearLayout rankingContent;
     private TextView selectedDayTitle;
     private TextView selectedDayCount;
     private TextView monthTitle;
@@ -138,7 +144,7 @@ public final class MainActivity extends Activity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (calendarDialog == null && !slideInProgress) {
+        if (calendarDialog == null && !slideInProgress && !rankingView) {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     touchDownX = event.getX();
@@ -203,6 +209,11 @@ public final class MainActivity extends Activity {
         viewToggleButton.setTextSize(22);
         viewToggleButton.setOnClickListener(view -> toggleMonthView());
         titleRow.addView(viewToggleButton);
+
+        rankingButton = compactButton("★");
+        rankingButton.setTextSize(22);
+        rankingButton.setOnClickListener(view -> toggleRankingView());
+        titleRow.addView(rankingButton);
         content.addView(titleRow);
 
         TextView subtitle = new TextView(this);
@@ -218,6 +229,12 @@ public final class MainActivity extends Activity {
         ));
 
         content.addView(createMonthPanel(), new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
+        content.addView(createRankingPanel(), new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1f
@@ -265,6 +282,9 @@ public final class MainActivity extends Activity {
     }
 
     private void toggleMonthView() {
+        rankingView = false;
+        rankingPanel.setVisibility(View.GONE);
+        rankingButton.setText("★");
         monthView = !monthView;
         if (monthView) {
             visibleMonth = firstDayOfMonth(selectedDateCalendar());
@@ -276,6 +296,28 @@ public final class MainActivity extends Activity {
             selectedDayPanel.setVisibility(View.VISIBLE);
             monthPanel.setVisibility(View.GONE);
             viewToggleButton.setText("☰");
+            renderSelectedDay();
+        }
+    }
+
+    private void toggleRankingView() {
+        rankingView = !rankingView;
+        if (rankingView) {
+            selectedDayPanel.setVisibility(View.GONE);
+            monthPanel.setVisibility(View.GONE);
+            rankingPanel.setVisibility(View.VISIBLE);
+            rankingButton.setText("1");
+            renderRankingView();
+            return;
+        }
+
+        rankingPanel.setVisibility(View.GONE);
+        rankingButton.setText("★");
+        if (monthView) {
+            monthPanel.setVisibility(View.VISIBLE);
+            renderMonthView();
+        } else {
+            selectedDayPanel.setVisibility(View.VISIBLE);
             renderSelectedDay();
         }
     }
@@ -527,6 +569,44 @@ public final class MainActivity extends Activity {
             showAddSnackDialog(rowDate, false);
         });
         panel.addView(monthList, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
+        return panel;
+    }
+
+    private LinearLayout createRankingPanel() {
+        LinearLayout panel = new LinearLayout(this);
+        rankingPanel = panel;
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(14), dp(12), dp(14), dp(12));
+        panel.setBackground(roundRect(Color.WHITE, dp(18), Color.TRANSPARENT, 0));
+        panel.setVisibility(View.GONE);
+
+        TextView title = new TextView(this);
+        title.setText("Rankings");
+        title.setTextColor(TEXT_DARK);
+        title.setTextSize(22);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        panel.addView(title);
+
+        TextView hint = new TextView(this);
+        hint.setText("POC ranking page for favorite snacks and makers.");
+        hint.setTextColor(TEXT_MUTED);
+        hint.setTextSize(13);
+        hint.setPadding(0, dp(2), 0, dp(8));
+        panel.addView(hint);
+
+        ScrollView scrollView = new ScrollView(this);
+        rankingContent = new LinearLayout(this);
+        rankingContent.setOrientation(LinearLayout.VERTICAL);
+        scrollView.addView(rankingContent, new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT
+        ));
+        panel.addView(scrollView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1f
@@ -890,6 +970,103 @@ public final class MainActivity extends Activity {
         return styledRow;
     }
 
+    private void renderRankingView() {
+        if (rankingContent == null) {
+            return;
+        }
+
+        rankingContent.removeAllViews();
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        addRankingSection("Most eaten snacks in " + currentYear, rankingRows(false, currentYear));
+        addRankingSection("Most eaten snacks of all time", rankingRows(false, null));
+        addRankingSection("Most eaten makers in " + currentYear, rankingRows(true, currentYear));
+        addRankingSection("Most eaten makers of all time", rankingRows(true, null));
+    }
+
+    private void addRankingSection(String title, List<RankingRow> rows) {
+        TextView sectionTitle = new TextView(this);
+        sectionTitle.setText(title);
+        sectionTitle.setTextColor(TEXT_DARK);
+        sectionTitle.setTextSize(18);
+        sectionTitle.setTypeface(Typeface.DEFAULT_BOLD);
+        sectionTitle.setPadding(0, dp(12), 0, dp(4));
+        rankingContent.addView(sectionTitle);
+
+        TextView rankingText = new TextView(this);
+        rankingText.setTextColor(rows.isEmpty() ? TEXT_MUTED : TEXT_DARK);
+        rankingText.setTextSize(16);
+        rankingText.setText(formatRankingRows(rows));
+        rankingContent.addView(rankingText);
+    }
+
+    private CharSequence formatRankingRows(List<RankingRow> rows) {
+        if (rows.isEmpty()) {
+            return "No data yet";
+        }
+
+        StringBuilder text = new StringBuilder();
+        int rowsToShow = Math.min(MAX_RANKING_ROWS, rows.size());
+        for (int i = 0; i < rowsToShow; i++) {
+            RankingRow row = rows.get(i);
+            if (i > 0) {
+                text.append('\n');
+            }
+            text.append(i + 1)
+                    .append(". ")
+                    .append(row.label)
+                    .append(" — ")
+                    .append(row.count)
+                    .append(" time")
+                    .append(row.count == 1 ? "" : "s");
+        }
+        return text;
+    }
+
+    private List<RankingRow> rankingRows(boolean makerRanking, Integer year) {
+        HashMap<String, Integer> counts = new HashMap<>();
+        HashMap<String, String> labels = new HashMap<>();
+        String yearPrefix = year == null ? null : String.format(Locale.US, "%04d-", year);
+        for (SnackDay day : snackStore.getAllDays()) {
+            if (yearPrefix != null && !day.getDateIso().startsWith(yearPrefix)) {
+                continue;
+            }
+
+            for (SnackRecord snack : day.getSnacks()) {
+                String value = makerRanking ? snack.getMaker() : snack.getName();
+                countRankingValue(counts, labels, value);
+            }
+        }
+
+        ArrayList<RankingRow> rows = new ArrayList<>();
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            rows.add(new RankingRow(entry.getValue(), counts.getOrDefault(entry.getKey(), 0)));
+        }
+        rows.sort((left, right) -> {
+            int countComparison = Integer.compare(right.count, left.count);
+            if (countComparison != 0) {
+                return countComparison;
+            }
+
+            int labelComparison = left.label.compareToIgnoreCase(right.label);
+            if (labelComparison != 0) {
+                return labelComparison;
+            }
+            return left.label.compareTo(right.label);
+        });
+        return rows;
+    }
+
+    private void countRankingValue(HashMap<String, Integer> counts, HashMap<String, String> labels, String rawValue) {
+        String value = rawValue == null ? "" : rawValue.trim();
+        if (value.isEmpty()) {
+            return;
+        }
+
+        String normalized = value.toLowerCase(Locale.US);
+        counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
+        labels.putIfAbsent(normalized, value);
+    }
+
     private static final class MonthRow {
         private final CharSequence dateLabel;
         private final String snacks;
@@ -897,6 +1074,16 @@ public final class MainActivity extends Activity {
         private MonthRow(CharSequence dateLabel, String snacks) {
             this.dateLabel = dateLabel;
             this.snacks = snacks;
+        }
+    }
+
+    private static final class RankingRow {
+        private final String label;
+        private final int count;
+
+        private RankingRow(String label, int count) {
+            this.label = label;
+            this.count = count;
         }
     }
 
@@ -939,6 +1126,7 @@ public final class MainActivity extends Activity {
         renderCalendar();
         renderSelectedDay();
         renderMonthView();
+        renderRankingView();
     }
 
     private Calendar monthAddDateCalendar() {

@@ -19,6 +19,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Previous/next month and previous/next year buttons
 - Selected-day snack list
 - Header list icon toggles between individual-day mode and monthly snack-list mode
+- Header star button toggles a POC rankings page
 - Header crosshair button slides back to the current date/current month
 - Header calendar button opens the calendar date picker from either mode
 - Calendar date picker supports left/right swipe with slide animation to change months
@@ -26,6 +27,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red
 - Monthly rows align snack names in a separate column from the date/weekday label, with multiple snacks separated by new lines
 - Monthly summary shows snack days
+- Rankings page shows most eaten snacks and makers for the current year and all time
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
 - Tapping a day in monthly mode opens a fixed-date add-snack modal without leaving monthly mode
 - Snack and maker entry fields autocomplete up to 3 suggestions above the input after the first typed letter, prioritizing previous snack and maker values by frequency then alphabetical order
