@@ -691,6 +691,8 @@ public final class MainActivity extends Activity {
                     Button editButton = (Button) row.getChildAt(2);
                     Button deleteButton = (Button) row.getChildAt(3);
                     if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
+                        snackText.setTextColor(TEXT_DARK);
+                        snackText.setTypeface(Typeface.DEFAULT);
                         editButton.setVisibility(View.VISIBLE);
                         deleteButton.setVisibility(View.VISIBLE);
                         editButton.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
@@ -699,6 +701,8 @@ public final class MainActivity extends Activity {
                             refreshAllViews();
                         });
                     } else {
+                        snackText.setTextColor(ORANGE_DARK);
+                        snackText.setTypeface(Typeface.DEFAULT_BOLD);
                         editButton.setVisibility(View.GONE);
                         deleteButton.setVisibility(View.GONE);
                         editButton.setOnClickListener(null);
@@ -1162,7 +1166,7 @@ public final class MainActivity extends Activity {
                     + ")";
             CharSequence styledDateLabel = formatDateLabel(dayCalendar, dateLabel);
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(MonthRow.emptyDay(styledDateLabel, dateIso));
+                monthListAdapter.add(MonthRow.addRow(styledDateLabel, dateIso));
             } else {
                 snackDays++;
                 List<SnackRecord> snacks = day.getSnacks();
@@ -1174,6 +1178,7 @@ public final class MainActivity extends Activity {
                             snackIndex
                     ));
                 }
+                monthListAdapter.add(MonthRow.addRow("", dateIso));
             }
         }
 
@@ -1376,8 +1381,8 @@ public final class MainActivity extends Activity {
             this.snackIndex = snackIndex;
         }
 
-        private static MonthRow emptyDay(CharSequence dateLabel, String dateIso) {
-            return new MonthRow(dateLabel, "", dateIso, null, -1);
+        private static MonthRow addRow(CharSequence dateLabel, String dateIso) {
+            return new MonthRow(dateLabel, "＋ Add snack", dateIso, null, -1);
         }
 
         private static MonthRow snackDay(CharSequence dateLabel, String dateIso, SnackRecord snackRecord, int snackIndex) {
