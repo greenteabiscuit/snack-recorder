@@ -1166,8 +1166,9 @@ public final class MainActivity extends Activity {
                 snackDays++;
                 List<SnackRecord> snacks = day.getSnacks();
                 for (int snackIndex = 0; snackIndex < snacks.size(); snackIndex++) {
+                    CharSequence rowDateLabel = snackIndex == 0 ? styledDateLabel : "";
                     monthListAdapter.add(MonthRow.snackDay(
-                            styledDateLabel,
+                            rowDateLabel,
                             dateIso,
                             snacks.get(snackIndex),
                             snackIndex
