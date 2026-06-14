@@ -903,12 +903,9 @@ public final class MainActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT_BOLD);
         content.addView(title);
 
-        EditText editInput = new EditText(this);
-        editInput.setSingleLine(true);
-        editInput.setHint("Snack name");
+        AutoCompleteTextView editInput = createSnackInput("Snack name");
         editInput.setText(currentSnack.getName());
         editInput.setSelectAllOnFocus(true);
-        editInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
         content.addView(editInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
