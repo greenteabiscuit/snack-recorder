@@ -693,6 +693,7 @@ public final class MainActivity extends Activity {
                     if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
                         snackText.setTextColor(TEXT_DARK);
                         snackText.setTypeface(Typeface.DEFAULT);
+                        row.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
                         editButton.setVisibility(View.VISIBLE);
                         deleteButton.setVisibility(View.VISIBLE);
                         editButton.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
@@ -703,6 +704,7 @@ public final class MainActivity extends Activity {
                     } else {
                         snackText.setTextColor(ORANGE_DARK);
                         snackText.setTypeface(Typeface.DEFAULT_BOLD);
+                        row.setOnClickListener(view -> showAddSnackDialog(monthRowDateCalendar(monthRow), false));
                         editButton.setVisibility(View.GONE);
                         deleteButton.setVisibility(View.GONE);
                         editButton.setOnClickListener(null);
@@ -713,25 +715,6 @@ public final class MainActivity extends Activity {
             }
         };
         monthList.setAdapter(monthListAdapter);
-        monthList.setOnItemClickListener((parent, view, position, id) -> {
-            MonthRow monthRow = monthListAdapter.getItem(position);
-            if (monthRow == null) {
-                return;
-            }
-
-            if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
-                showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord);
-                return;
-            }
-
-            Calendar rowDate = Calendar.getInstance();
-            try {
-                rowDate.setTime(isoDateFormat.parse(monthRow.dateIso));
-            } catch (Exception ignored) {
-                return;
-            }
-            showAddSnackDialog(rowDate, false);
-        });
         panel.addView(monthList, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
@@ -739,6 +722,16 @@ public final class MainActivity extends Activity {
         ));
 
         return panel;
+    }
+
+    private Calendar monthRowDateCalendar(MonthRow monthRow) {
+        Calendar rowDate = Calendar.getInstance();
+        try {
+            rowDate.setTime(isoDateFormat.parse(monthRow.dateIso));
+        } catch (Exception ignored) {
+            rowDate.setTime(selectedDateCalendar().getTime());
+        }
+        return rowDate;
     }
 
     private LinearLayout createRankingPanel() {
