@@ -694,6 +694,7 @@ public final class MainActivity extends Activity {
                         snackText.setTextColor(TEXT_DARK);
                         snackText.setTypeface(Typeface.DEFAULT);
                         row.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
+                        editButton.setText("✎");
                         editButton.setVisibility(View.VISIBLE);
                         deleteButton.setVisibility(View.VISIBLE);
                         editButton.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
@@ -705,9 +706,10 @@ public final class MainActivity extends Activity {
                         snackText.setTextColor(ORANGE_DARK);
                         snackText.setTypeface(Typeface.DEFAULT_BOLD);
                         row.setOnClickListener(view -> showAddSnackDialog(monthRowDateCalendar(monthRow), false));
-                        editButton.setVisibility(View.GONE);
+                        editButton.setText("＋");
+                        editButton.setVisibility(View.VISIBLE);
                         deleteButton.setVisibility(View.GONE);
-                        editButton.setOnClickListener(null);
+                        editButton.setOnClickListener(view -> showAddSnackDialog(monthRowDateCalendar(monthRow), false));
                         deleteButton.setOnClickListener(null);
                     }
                 }
@@ -1375,7 +1377,7 @@ public final class MainActivity extends Activity {
         }
 
         private static MonthRow addRow(CharSequence dateLabel, String dateIso) {
-            return new MonthRow(dateLabel, "＋ Add snack", dateIso, null, -1);
+            return new MonthRow(dateLabel, "", dateIso, null, -1);
         }
 
         private static MonthRow snackDay(CharSequence dateLabel, String dateIso, SnackRecord snackRecord, int snackIndex) {
