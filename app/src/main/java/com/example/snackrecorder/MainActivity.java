@@ -1042,34 +1042,44 @@ public final class MainActivity extends Activity {
         sectionTitle.setPadding(0, dp(12), 0, dp(4));
         container.addView(sectionTitle);
 
-        TextView rankingText = new TextView(this);
-        rankingText.setTextColor(rows.isEmpty() ? TEXT_MUTED : TEXT_DARK);
-        rankingText.setTextSize(16);
-        rankingText.setText(formatRankingRows(rows));
-        container.addView(rankingText);
-    }
-
-    private CharSequence formatRankingRows(List<RankingRow> rows) {
         if (rows.isEmpty()) {
-            return "No data yet";
+            TextView emptyText = new TextView(this);
+            emptyText.setText("No data yet");
+            emptyText.setTextColor(TEXT_MUTED);
+            emptyText.setTextSize(16);
+            container.addView(emptyText);
+            return;
         }
 
-        StringBuilder text = new StringBuilder();
         int rowsToShow = Math.min(MAX_RANKING_ROWS, rows.size());
         for (int i = 0; i < rowsToShow; i++) {
             RankingRow row = rows.get(i);
-            if (i > 0) {
-                text.append('\n');
-            }
-            text.append(i + 1)
-                    .append(". ")
-                    .append(row.label)
-                    .append(" — ")
-                    .append(row.count)
-                    .append(" time")
-                    .append(row.count == 1 ? "" : "s");
+            LinearLayout rankingRow = new LinearLayout(this);
+            rankingRow.setGravity(Gravity.CENTER_VERTICAL);
+            rankingRow.setPadding(0, dp(2), 0, dp(2));
+
+            TextView labelText = new TextView(this);
+            labelText.setText((i + 1) + ". " + row.label);
+            labelText.setTextColor(TEXT_DARK);
+            labelText.setTextSize(16);
+            rankingRow.addView(labelText, new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+            ));
+
+            TextView countText = new TextView(this);
+            countText.setText(row.count + " time" + (row.count == 1 ? "" : "s"));
+            countText.setTextColor(ORANGE_DARK);
+            countText.setTextSize(16);
+            countText.setGravity(Gravity.END);
+            rankingRow.addView(countText, new LinearLayout.LayoutParams(
+                    dp(84),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+
+            container.addView(rankingRow);
         }
-        return text;
     }
 
     private List<RankingRow> rankingRows(boolean makerRanking, Integer year) {
