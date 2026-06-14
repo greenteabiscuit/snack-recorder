@@ -30,7 +30,6 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -644,17 +643,11 @@ public final class MainActivity extends Activity {
         panel.addView(yearRow);
         selectRankingYearSpinnerValue();
 
-        ScrollView scrollView = new ScrollView(this);
         rankingContent = new LinearLayout(this);
         rankingContent.setOrientation(LinearLayout.VERTICAL);
-        scrollView.addView(rankingContent, new ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT
-        ));
-        panel.addView(scrollView, new LinearLayout.LayoutParams(
+        panel.addView(rankingContent, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                0,
-                1f
+                LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
         return panel;
