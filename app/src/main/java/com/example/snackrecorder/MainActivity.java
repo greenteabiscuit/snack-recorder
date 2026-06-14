@@ -20,9 +20,12 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.Filterable;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
@@ -54,6 +57,29 @@ public final class MainActivity extends Activity {
     private static final int MIN_SWIPE_DISTANCE_DP = 72;
     private static final int REQUEST_CREATE_CSV = 1001;
     private static final int SLIDE_DISTANCE_DP = 56;
+    private static final int MAX_SNACK_SUGGESTIONS = 3;
+    private static final int SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP = 144;
+    private static final String[] COMMON_SNACKS = {
+            "Almonds",
+            "Apple",
+            "Banana",
+            "Carrot sticks",
+            "Cheese",
+            "Chips",
+            "Chocolate",
+            "Cookie",
+            "Crackers",
+            "Granola bar",
+            "Grapes",
+            "Nuts",
+            "Orange",
+            "Popcorn",
+            "Pretzels",
+            "Protein bar",
+            "Rice crackers",
+            "Trail mix",
+            "Yogurt"
+    };
 
     private final SimpleDateFormat isoDateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
     private final SimpleDateFormat friendlyDateFormat = new SimpleDateFormat("EEE, MMM d, yyyy", Locale.US);
@@ -82,7 +108,8 @@ public final class MainActivity extends Activity {
     private TextView monthTitle;
     private TextView monthSummary;
     private TextView monthAddDateLabel;
-    private EditText snackInput;
+    private AutoCompleteTextView snackInput;
+    private AutoCompleteTextView makerInput;
     private LinearLayout snackListContainer;
     private ArrayAdapter<MonthRow> monthListAdapter;
 
@@ -362,10 +389,10 @@ public final class MainActivity extends Activity {
         addRow.setGravity(Gravity.CENTER_VERTICAL);
         addRow.setPadding(0, dp(8), 0, 0);
 
-        snackInput = new EditText(this);
-        snackInput.setSingleLine(true);
-        snackInput.setHint("Snack name, e.g. almonds");
-        snackInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        LinearLayout inputColumn = new LinearLayout(this);
+        inputColumn.setOrientation(LinearLayout.VERTICAL);
+
+        snackInput = createSnackInput("Snack name, e.g. almonds");
         snackInput.setOnEditorActionListener((view, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 addSnackFromInput();
@@ -373,7 +400,17 @@ public final class MainActivity extends Activity {
             }
             return false;
         });
-        addRow.addView(snackInput, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        inputColumn.addView(snackInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        makerInput = createMakerInput();
+        inputColumn.addView(makerInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        addRow.addView(inputColumn, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
         Button addButton = new Button(this);
         addButton.setText("Add");
@@ -487,7 +524,7 @@ public final class MainActivity extends Activity {
             } catch (Exception ignored) {
                 return;
             }
-            showAddSnackDialog(rowDate);
+            showAddSnackDialog(rowDate, false);
         });
         panel.addView(monthList, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -651,7 +688,7 @@ public final class MainActivity extends Activity {
         }
 
         snackListContainer.removeAllViews();
-        List<String> snacks = snackDay.getSnacks();
+        List<SnackRecord> snacks = snackDay.getSnacks();
         if (snacks.isEmpty()) {
             TextView emptyState = new TextView(this);
             emptyState.setText("No snacks recorded for this day.");
@@ -667,13 +704,13 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private LinearLayout createSnackRow(String snack, int snackIndex) {
+    private LinearLayout createSnackRow(SnackRecord snack, int snackIndex) {
         LinearLayout row = new LinearLayout(this);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(3), 0, dp(3));
 
         TextView snackName = new TextView(this);
-        snackName.setText(snack);
+        snackName.setText(snack.displayText());
         snackName.setTextColor(TEXT_DARK);
         snackName.setTextSize(18);
         row.addView(snackName, new LinearLayout.LayoutParams(
@@ -698,7 +735,7 @@ public final class MainActivity extends Activity {
         return row;
     }
 
-    private void showEditSnackDialog(int snackIndex, String currentSnack) {
+    private void showEditSnackDialog(int snackIndex, SnackRecord currentSnack) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -714,10 +751,18 @@ public final class MainActivity extends Activity {
 
         EditText editInput = new EditText(this);
         editInput.setSingleLine(true);
-        editInput.setText(currentSnack);
+        editInput.setHint("Snack name");
+        editInput.setText(currentSnack.getName());
         editInput.setSelectAllOnFocus(true);
         editInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
         content.addView(editInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        EditText editMakerInput = createMakerInput();
+        editMakerInput.setText(currentSnack.getMaker());
+        content.addView(editMakerInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
@@ -742,7 +787,7 @@ public final class MainActivity extends Activity {
                 return;
             }
 
-            snackStore.updateSnack(selectedDateIso, snackIndex, updatedSnack);
+            snackStore.updateSnack(selectedDateIso, snackIndex, updatedSnack, editMakerInput.getText().toString().trim());
             refreshAllViews();
             dialog.dismiss();
         });
@@ -770,7 +815,6 @@ public final class MainActivity extends Activity {
         int month = visibleMonth.get(Calendar.MONTH);
         List<SnackDay> monthDays = snackStore.getDaysInMonth(year, month);
         Map<String, SnackDay> daysByDate = new HashMap<>();
-        int snackCount = 0;
         int snackDays = 0;
 
         monthTitle.setText(monthNames[month] + " " + year);
@@ -799,30 +843,22 @@ public final class MainActivity extends Activity {
                 monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), ""));
             } else {
                 snackDays++;
-                snackCount += day.getSnackCount();
                 monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), formatSnackList(day.getSnacks())));
             }
         }
 
-        int snackFreeDays = daysInMonth - snackDays;
-        monthSummary.setText(
-                snackCount + " snack" + (snackCount == 1 ? "" : "s")
-                        + " · "
-                        + snackDays + " snack day" + (snackDays == 1 ? "" : "s")
-                        + " · "
-                        + snackFreeDays + " snack-free day" + (snackFreeDays == 1 ? "" : "s")
-        );
+        monthSummary.setText(snackDays + " snack day" + (snackDays == 1 ? "" : "s"));
         monthAddDateLabel.setText("Add a snack with a date in " + monthNames[month]);
         monthListAdapter.notifyDataSetChanged();
     }
 
-    private String formatSnackList(List<String> snacks) {
+    private String formatSnackList(List<SnackRecord> snacks) {
         StringBuilder list = new StringBuilder();
         for (int i = 0; i < snacks.size(); i++) {
             if (i > 0) {
-                list.append(", ");
+                list.append('\n');
             }
-            list.append(snacks.get(i));
+            list.append(snacks.get(i).displayText());
         }
         return list.toString();
     }
@@ -893,8 +929,9 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        snackStore.addSnack(selectedDateIso, snack);
+        snackStore.addSnack(selectedDateIso, snack, makerInput.getText().toString().trim());
         snackInput.setText("");
+        makerInput.setText("");
         refreshAllViews();
     }
 
@@ -916,10 +953,10 @@ public final class MainActivity extends Activity {
     }
 
     private void showAddSnackDialog() {
-        showAddSnackDialog(monthAddDateCalendar());
+        showAddSnackDialog(monthAddDateCalendar(), true);
     }
 
-    private void showAddSnackDialog(Calendar defaultDate) {
+    private void showAddSnackDialog(Calendar defaultDate, boolean allowDateChange) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -934,29 +971,44 @@ public final class MainActivity extends Activity {
         content.addView(title);
 
         TextView hint = new TextView(this);
-        hint.setText("Choose the date and enter the snack you ate.");
+        hint.setText(allowDateChange ? "Enter the snack you ate and choose the date." : "Enter the snack you ate for this date.");
         hint.setTextColor(TEXT_MUTED);
         hint.setTextSize(14);
         hint.setPadding(0, 0, 0, dp(8));
         content.addView(hint);
 
-        DatePicker datePicker = new DatePicker(this);
-        datePicker.init(
-                defaultDate.get(Calendar.YEAR),
-                defaultDate.get(Calendar.MONTH),
-                defaultDate.get(Calendar.DAY_OF_MONTH),
-                null
-        );
-        content.addView(datePicker);
-
-        EditText snackInput = new EditText(this);
-        snackInput.setSingleLine(true);
-        snackInput.setHint("Snack name");
-        snackInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        AutoCompleteTextView snackInput = createSnackInput("Snack name");
         content.addView(snackInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
+
+        EditText makerInput = createMakerInput();
+        content.addView(makerInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        final DatePicker datePicker;
+        if (allowDateChange) {
+            datePicker = new DatePicker(this);
+            datePicker.init(
+                    defaultDate.get(Calendar.YEAR),
+                    defaultDate.get(Calendar.MONTH),
+                    defaultDate.get(Calendar.DAY_OF_MONTH),
+                    null
+            );
+            content.addView(datePicker);
+        } else {
+            datePicker = null;
+            TextView fixedDate = new TextView(this);
+            fixedDate.setText(friendlyDateFormat.format(defaultDate.getTime()) + " · " + isoDateFormat.format(defaultDate.getTime()));
+            fixedDate.setTextColor(ORANGE_DARK);
+            fixedDate.setTextSize(16);
+            fixedDate.setTypeface(Typeface.DEFAULT_BOLD);
+            fixedDate.setPadding(0, dp(8), 0, dp(4));
+            content.addView(fixedDate);
+        }
 
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -971,24 +1023,34 @@ public final class MainActivity extends Activity {
         Button saveButton = new Button(this);
         saveButton.setText("Add");
         saveButton.setAllCaps(false);
-        saveButton.setOnClickListener(view -> {
+        View.OnClickListener addSnack = view -> {
             String snack = snackInput.getText().toString().trim();
             if (snack.isEmpty()) {
                 Toast.makeText(this, "Enter a snack first", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Calendar selectedDate = Calendar.getInstance();
-            selectedDate.set(datePicker.getYear(), datePicker.getMonth(), datePicker.getDayOfMonth(), 0, 0, 0);
+            Calendar selectedDate = (Calendar) defaultDate.clone();
+            if (datePicker != null) {
+                selectedDate.set(datePicker.getYear(), datePicker.getMonth(), datePicker.getDayOfMonth(), 0, 0, 0);
+            }
             selectedDate.set(Calendar.MILLISECOND, 0);
             selectedDateIso = isoDateFormat.format(selectedDate.getTime());
             visibleMonth = firstDayOfMonth(selectedDate);
-            snackStore.addSnack(selectedDateIso, snack);
+            snackStore.addSnack(selectedDateIso, snack, makerInput.getText().toString().trim());
             renderCalendar();
             renderSelectedDay();
             renderMonthView();
             dialog.dismiss();
+        };
+        snackInput.setOnEditorActionListener((view, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                addSnack.onClick(view);
+                return true;
+            }
+            return false;
         });
+        saveButton.setOnClickListener(addSnack);
         actions.addView(saveButton);
         content.addView(actions);
 
@@ -1220,6 +1282,89 @@ public final class MainActivity extends Activity {
         button.setMinimumWidth(dp(40));
         button.setPadding(0, 0, 0, 0);
         return button;
+    }
+
+    private AutoCompleteTextView createSnackInput(String hint) {
+        AutoCompleteTextView input = new AutoCompleteTextView(this);
+        input.setSingleLine(true);
+        input.setHint(hint);
+        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        input.setThreshold(1);
+        input.setAdapter(new SnackSuggestionAdapter());
+        int dropDownHeight = dp(SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP);
+        input.setDropDownHeight(dropDownHeight);
+        input.post(() -> input.setDropDownVerticalOffset(-input.getHeight() - dropDownHeight));
+        input.setOnFocusChangeListener((view, hasFocus) -> {
+            if (hasFocus && input.getText().length() > 0) {
+                input.showDropDown();
+            }
+        });
+        return input;
+    }
+
+    private AutoCompleteTextView createMakerInput() {
+        return createSnackInput("Maker (optional)");
+    }
+
+    private List<String> snackSuggestions(CharSequence constraint) {
+        String prefix = constraint == null ? "" : constraint.toString().trim().toLowerCase(Locale.US);
+        ArrayList<String> suggestions = new ArrayList<>();
+        if (prefix.isEmpty()) {
+            return suggestions;
+        }
+
+        for (String snack : snackStore.getSnackNames()) {
+            addSnackSuggestion(suggestions, snack, prefix);
+        }
+        for (String snack : COMMON_SNACKS) {
+            addSnackSuggestion(suggestions, snack, prefix);
+        }
+        return suggestions;
+    }
+
+    private void addSnackSuggestion(ArrayList<String> suggestions, String snack, String prefix) {
+        if (suggestions.size() >= MAX_SNACK_SUGGESTIONS || !snack.toLowerCase(Locale.US).startsWith(prefix)) {
+            return;
+        }
+
+        for (String suggestion : suggestions) {
+            if (suggestion.equalsIgnoreCase(snack)) {
+                return;
+            }
+        }
+        suggestions.add(snack);
+    }
+
+    private final class SnackSuggestionAdapter extends ArrayAdapter<String> implements Filterable {
+        private final Filter filter = new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+                FilterResults results = new FilterResults();
+                List<String> suggestions = snackSuggestions(constraint);
+                results.values = suggestions;
+                results.count = suggestions.size();
+                return results;
+            }
+
+            @Override
+            @SuppressWarnings("unchecked")
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                clear();
+                if (results.values instanceof List<?>) {
+                    addAll((List<String>) results.values);
+                }
+                notifyDataSetChanged();
+            }
+        };
+
+        private SnackSuggestionAdapter() {
+            super(MainActivity.this, android.R.layout.simple_dropdown_item_1line, new ArrayList<>());
+        }
+
+        @Override
+        public Filter getFilter() {
+            return filter;
+        }
     }
 
     private GradientDrawable dayBackground(boolean selected, boolean today, int snackCount) {

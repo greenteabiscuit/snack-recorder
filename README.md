@@ -7,7 +7,7 @@ Native Android app for recording snacks eaten each day.
 Each day is represented by:
 
 - `dateIso`: the day in `yyyy-MM-dd` format
-- `snacks`: `List<String>` of snack names eaten that day
+- `snacks`: snack records with a required snack name and optional `maker`
 - `snackCount`: calculated from `snacks.size()`
 
 Data is stored locally in `SharedPreferences` as JSON.
@@ -24,16 +24,17 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Calendar date picker supports left/right swipe with slide animation to change months
 - Monthly snack-list mode shows every day in one month, including snack-free days
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red
-- Monthly rows align snack names in a separate column from the date/weekday label
-- Monthly summary shows snack count, snack days, and snack-free days
+- Monthly rows align snack names in a separate column from the date/weekday label, with multiple snacks separated by new lines
+- Monthly summary shows snack days
 - Monthly snack-list mode includes an **Add snack** modal with a date picker and snack field
-- Tapping a day in monthly mode opens the add-snack modal for that date without leaving monthly mode
+- Tapping a day in monthly mode opens a fixed-date add-snack modal without leaving monthly mode
+- Snack and maker entry fields autocomplete up to 3 suggestions above the input after the first typed letter, prioritizing previous snack names by frequency then alphabetical order
 - Swipe left/right in monthly mode to move to the next/previous month
 - Swipe left/right on the main screen to move to the next/previous day
 - Swipe transitions use a quick slide animation
-- Add snack by typing a name and tapping **Add**
-- Edit snacks with the ✎ button and remove them with the 🗑 button
-- Export all snacks as CSV with `date,snack` columns
+- Add snack by typing a name, optionally typing a maker, and tapping **Add**
+- Edit snack names and makers with the ✎ button and remove them with the 🗑 button
+- Export all snacks as CSV with `date,snack,maker` columns
 
 ## Build
 

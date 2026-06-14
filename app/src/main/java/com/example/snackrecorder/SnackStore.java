@@ -32,11 +32,44 @@ final class SnackStore {
         return getDay(dateIso).getSnackCount();
     }
 
+    List<String> getSnackNames() {
+        HashMap<String, Integer> snackCounts = new HashMap<>();
+        HashMap<String, String> displayNames = new HashMap<>();
+        TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
+        for (ArrayList<SnackRecord> snacks : sortedDays.values()) {
+            for (SnackRecord snack : snacks) {
+                String normalizedSnack = snack.getName().toLowerCase(Locale.US);
+                snackCounts.put(normalizedSnack, snackCounts.getOrDefault(normalizedSnack, 0) + 1);
+                displayNames.putIfAbsent(normalizedSnack, snack.getName());
+            }
+        }
+
+        ArrayList<String> snackNames = new ArrayList<>(displayNames.values());
+        snackNames.sort((left, right) -> {
+            String normalizedLeft = left.toLowerCase(Locale.US);
+            String normalizedRight = right.toLowerCase(Locale.US);
+            int countComparison = Integer.compare(
+                    snackCounts.getOrDefault(normalizedRight, 0),
+                    snackCounts.getOrDefault(normalizedLeft, 0)
+            );
+            if (countComparison != 0) {
+                return countComparison;
+            }
+
+            int nameComparison = left.compareToIgnoreCase(right);
+            if (nameComparison != 0) {
+                return nameComparison;
+            }
+            return left.compareTo(right);
+        });
+        return snackNames;
+    }
+
     List<SnackDay> getDaysInMonth(int year, int monthZeroBased) {
         String monthPrefix = String.format(Locale.US, "%04d-%02d-", year, monthZeroBased + 1);
         ArrayList<SnackDay> monthDays = new ArrayList<>();
-        TreeMap<String, ArrayList<String>> sortedDays = new TreeMap<>(loadDays());
-        for (Map.Entry<String, ArrayList<String>> entry : sortedDays.entrySet()) {
+        TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
+        for (Map.Entry<String, ArrayList<SnackRecord>> entry : sortedDays.entrySet()) {
             if (entry.getKey().startsWith(monthPrefix)) {
                 monthDays.add(new SnackDay(entry.getKey(), entry.getValue()));
             }
@@ -44,20 +77,20 @@ final class SnackStore {
         return monthDays;
     }
 
-    void addSnack(String dateIso, String snack) {
-        Map<String, ArrayList<String>> days = loadDays();
-        ArrayList<String> snacks = days.get(dateIso);
+    void addSnack(String dateIso, String snack, String maker) {
+        Map<String, ArrayList<SnackRecord>> days = loadDays();
+        ArrayList<SnackRecord> snacks = days.get(dateIso);
         if (snacks == null) {
             snacks = new ArrayList<>();
             days.put(dateIso, snacks);
         }
-        snacks.add(snack);
+        snacks.add(new SnackRecord(snack, maker));
         saveDays(days);
     }
 
     void removeSnack(String dateIso, int snackIndex) {
-        Map<String, ArrayList<String>> days = loadDays();
-        ArrayList<String> snacks = days.get(dateIso);
+        Map<String, ArrayList<SnackRecord>> days = loadDays();
+        ArrayList<SnackRecord> snacks = days.get(dateIso);
         if (snacks == null || snackIndex < 0 || snackIndex >= snacks.size()) {
             return;
         }
@@ -69,25 +102,27 @@ final class SnackStore {
         saveDays(days);
     }
 
-    void updateSnack(String dateIso, int snackIndex, String snack) {
-        Map<String, ArrayList<String>> days = loadDays();
-        ArrayList<String> snacks = days.get(dateIso);
+    void updateSnack(String dateIso, int snackIndex, String snack, String maker) {
+        Map<String, ArrayList<SnackRecord>> days = loadDays();
+        ArrayList<SnackRecord> snacks = days.get(dateIso);
         if (snacks == null || snackIndex < 0 || snackIndex >= snacks.size()) {
             return;
         }
 
-        snacks.set(snackIndex, snack);
+        snacks.set(snackIndex, new SnackRecord(snack, maker));
         saveDays(days);
     }
 
     String exportCsv() {
-        StringBuilder csv = new StringBuilder("date,snack\n");
-        TreeMap<String, ArrayList<String>> sortedDays = new TreeMap<>(loadDays());
-        for (Map.Entry<String, ArrayList<String>> entry : sortedDays.entrySet()) {
-            for (String snack : entry.getValue()) {
+        StringBuilder csv = new StringBuilder("date,snack,maker\n");
+        TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
+        for (Map.Entry<String, ArrayList<SnackRecord>> entry : sortedDays.entrySet()) {
+            for (SnackRecord snack : entry.getValue()) {
                 appendCsvField(csv, entry.getKey());
                 csv.append(',');
-                appendCsvField(csv, snack);
+                appendCsvField(csv, snack.getName());
+                csv.append(',');
+                appendCsvField(csv, snack.getMaker());
                 csv.append('\n');
             }
         }
@@ -113,8 +148,8 @@ final class SnackStore {
         csv.append('"');
     }
 
-    private Map<String, ArrayList<String>> loadDays() {
-        HashMap<String, ArrayList<String>> days = new HashMap<>();
+    private Map<String, ArrayList<SnackRecord>> loadDays() {
+        HashMap<String, ArrayList<SnackRecord>> days = new HashMap<>();
         String rawJson = preferences.getString(DAYS_KEY, "{}");
         try {
             JSONObject root = new JSONObject(rawJson);
@@ -126,9 +161,18 @@ final class SnackStore {
             for (int i = 0; i < names.length(); i++) {
                 String dateIso = names.getString(i);
                 JSONArray snackArray = root.getJSONArray(dateIso);
-                ArrayList<String> snacks = new ArrayList<>();
+                ArrayList<SnackRecord> snacks = new ArrayList<>();
                 for (int j = 0; j < snackArray.length(); j++) {
-                    snacks.add(snackArray.getString(j));
+                    Object snackValue = snackArray.get(j);
+                    if (snackValue instanceof JSONObject) {
+                        JSONObject snackObject = (JSONObject) snackValue;
+                        snacks.add(new SnackRecord(
+                                snackObject.optString("name", ""),
+                                snackObject.optString("maker", "")
+                        ));
+                    } else {
+                        snacks.add(new SnackRecord(String.valueOf(snackValue), ""));
+                    }
                 }
                 days.put(dateIso, snacks);
             }
@@ -138,13 +182,16 @@ final class SnackStore {
         return days;
     }
 
-    private void saveDays(Map<String, ArrayList<String>> days) {
+    private void saveDays(Map<String, ArrayList<SnackRecord>> days) {
         JSONObject root = new JSONObject();
         try {
-            for (Map.Entry<String, ArrayList<String>> entry : days.entrySet()) {
+            for (Map.Entry<String, ArrayList<SnackRecord>> entry : days.entrySet()) {
                 JSONArray snacks = new JSONArray();
-                for (String snack : entry.getValue()) {
-                    snacks.put(snack);
+                for (SnackRecord snack : entry.getValue()) {
+                    JSONObject snackObject = new JSONObject();
+                    snackObject.put("name", snack.getName());
+                    snackObject.put("maker", snack.getMaker());
+                    snacks.put(snackObject);
                 }
                 root.put(entry.getKey(), snacks);
             }
