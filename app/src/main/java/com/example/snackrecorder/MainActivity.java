@@ -96,7 +96,6 @@ public final class MainActivity extends Activity {
     private final SimpleDateFormat compactDateFormat = new SimpleDateFormat("MMM d", Locale.US);
     private final SimpleDateFormat weekdayFormat = new SimpleDateFormat("EEE", Locale.US);
     private final ArrayList<TextView> dayCells = new ArrayList<>();
-    private final ArrayList<String> monthRowDates = new ArrayList<>();
     private final String[] monthNames = new DateFormatSymbols(Locale.US).getMonths();
 
     private SnackStore snackStore;
@@ -651,7 +650,7 @@ public final class MainActivity extends Activity {
                 LinearLayout row;
                 TextView dateText;
                 TextView snackText;
-                if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 2) {
+                if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 4) {
                     row = (LinearLayout) convertView;
                     dateText = (TextView) row.getChildAt(0);
                     snackText = (TextView) row.getChildAt(1);
@@ -675,25 +674,55 @@ public final class MainActivity extends Activity {
                             LinearLayout.LayoutParams.WRAP_CONTENT,
                             1f
                     ));
+
+                    Button editButton = compactButton("✎");
+                    editButton.setTextSize(18);
+                    row.addView(editButton);
+
+                    Button deleteButton = compactButton("🗑");
+                    deleteButton.setTextSize(18);
+                    row.addView(deleteButton);
                 }
 
                 MonthRow monthRow = getItem(position);
                 if (monthRow != null) {
                     dateText.setText(monthRow.dateLabel);
                     snackText.setText(monthRow.snacks);
+                    Button editButton = (Button) row.getChildAt(2);
+                    Button deleteButton = (Button) row.getChildAt(3);
+                    if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
+                        editButton.setVisibility(View.VISIBLE);
+                        deleteButton.setVisibility(View.VISIBLE);
+                        editButton.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
+                        deleteButton.setOnClickListener(view -> {
+                            snackStore.removeSnack(monthRow.dateIso, monthRow.snackIndex);
+                            refreshAllViews();
+                        });
+                    } else {
+                        editButton.setVisibility(View.GONE);
+                        deleteButton.setVisibility(View.GONE);
+                        editButton.setOnClickListener(null);
+                        deleteButton.setOnClickListener(null);
+                    }
                 }
                 return row;
             }
         };
         monthList.setAdapter(monthListAdapter);
         monthList.setOnItemClickListener((parent, view, position, id) -> {
-            if (position < 0 || position >= monthRowDates.size()) {
+            MonthRow monthRow = monthListAdapter.getItem(position);
+            if (monthRow == null) {
+                return;
+            }
+
+            if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
+                showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord);
                 return;
             }
 
             Calendar rowDate = Calendar.getInstance();
             try {
-                rowDate.setTime(isoDateFormat.parse(monthRowDates.get(position)));
+                rowDate.setTime(isoDateFormat.parse(monthRow.dateIso));
             } catch (Exception ignored) {
                 return;
             }
@@ -1004,7 +1033,7 @@ public final class MainActivity extends Activity {
 
         Button editButton = compactButton("✎");
         editButton.setTextSize(18);
-        editButton.setOnClickListener(view -> showEditSnackDialog(snackIndex, snack));
+        editButton.setOnClickListener(view -> showEditSnackDialog(selectedDateIso, snackIndex, snack));
         row.addView(editButton);
 
         Button deleteButton = compactButton("🗑");
@@ -1018,7 +1047,7 @@ public final class MainActivity extends Activity {
         return row;
     }
 
-    private void showEditSnackDialog(int snackIndex, SnackRecord currentSnack) {
+    private void showEditSnackDialog(String dateIso, int snackIndex, SnackRecord currentSnack) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -1075,12 +1104,13 @@ public final class MainActivity extends Activity {
             }
 
             snackStore.updateSnack(
-                    selectedDateIso,
+                    dateIso,
                     snackIndex,
                     updatedSnack,
                     editMakerInput.getText().toString().trim(),
                     parseOtherSnacks(editOtherSnacksInput)
             );
+            selectedDateIso = dateIso;
             refreshAllViews();
             dialog.dismiss();
         });
@@ -1112,7 +1142,6 @@ public final class MainActivity extends Activity {
 
         monthTitle.setText(monthNames[month] + " " + year);
         monthListAdapter.clear();
-        monthRowDates.clear();
 
         for (SnackDay day : monthDays) {
             daysByDate.put(day.getDateIso(), day);
@@ -1127,16 +1156,24 @@ public final class MainActivity extends Activity {
             Calendar dayCalendar = Calendar.getInstance();
             dayCalendar.setTime(cursor.getTime());
 
-            monthRowDates.add(dateIso);
             String dateLabel = compactDateFormat.format(dayCalendar.getTime())
                     + " ("
                     + weekdayFormat.format(dayCalendar.getTime())
                     + ")";
+            CharSequence styledDateLabel = formatDateLabel(dayCalendar, dateLabel);
             if (day == null || day.getSnackCount() == 0) {
-                monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), ""));
+                monthListAdapter.add(MonthRow.emptyDay(styledDateLabel, dateIso));
             } else {
                 snackDays++;
-                monthListAdapter.add(new MonthRow(formatDateLabel(dayCalendar, dateLabel), formatSnackList(day.getSnacks())));
+                List<SnackRecord> snacks = day.getSnacks();
+                for (int snackIndex = 0; snackIndex < snacks.size(); snackIndex++) {
+                    monthListAdapter.add(MonthRow.snackDay(
+                            styledDateLabel,
+                            dateIso,
+                            snacks.get(snackIndex),
+                            snackIndex
+                    ));
+                }
             }
         }
 
@@ -1327,10 +1364,24 @@ public final class MainActivity extends Activity {
     private static final class MonthRow {
         private final CharSequence dateLabel;
         private final String snacks;
+        private final String dateIso;
+        private final SnackRecord snackRecord;
+        private final int snackIndex;
 
-        private MonthRow(CharSequence dateLabel, String snacks) {
+        private MonthRow(CharSequence dateLabel, String snacks, String dateIso, SnackRecord snackRecord, int snackIndex) {
             this.dateLabel = dateLabel;
             this.snacks = snacks;
+            this.dateIso = dateIso;
+            this.snackRecord = snackRecord;
+            this.snackIndex = snackIndex;
+        }
+
+        private static MonthRow emptyDay(CharSequence dateLabel, String dateIso) {
+            return new MonthRow(dateLabel, "", dateIso, null, -1);
+        }
+
+        private static MonthRow snackDay(CharSequence dateLabel, String dateIso, SnackRecord snackRecord, int snackIndex) {
+            return new MonthRow(dateLabel, snackRecord.displayText(), dateIso, snackRecord, snackIndex);
         }
     }
 
