@@ -37,6 +37,7 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -722,40 +723,53 @@ public final class MainActivity extends Activity {
         title.setTypeface(Typeface.DEFAULT_BOLD);
         panel.addView(title);
 
+        ScrollView rankingScroll = new ScrollView(this);
+        LinearLayout rankingBody = new LinearLayout(this);
+        rankingBody.setOrientation(LinearLayout.VERTICAL);
+        rankingScroll.addView(rankingBody, new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT
+        ));
+        panel.addView(rankingScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
         TextView hint = new TextView(this);
         hint.setText("Select a year for yearly rankings. All-time rankings stay fixed below.");
         hint.setTextColor(TEXT_MUTED);
         hint.setTextSize(13);
         hint.setPadding(0, dp(2), 0, dp(8));
-        panel.addView(hint);
+        rankingBody.addView(hint);
 
         allTimeRankingToggleButton = rankingToggleButton("All-time rankings");
         allTimeRankingToggleButton.setOnClickListener(view -> {
             allTimeRankingsExpanded = !allTimeRankingsExpanded;
             renderRankingView();
         });
-        panel.addView(allTimeRankingToggleButton, new LinearLayout.LayoutParams(
+        rankingBody.addView(allTimeRankingToggleButton, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
         allTimeRankingContent = new LinearLayout(this);
         allTimeRankingContent.setOrientation(LinearLayout.VERTICAL);
-        panel.addView(allTimeRankingContent);
+        rankingBody.addView(allTimeRankingContent);
 
         yearlyRankingToggleButton = rankingToggleButton("Yearly rankings");
         yearlyRankingToggleButton.setOnClickListener(view -> {
             yearlyRankingsExpanded = !yearlyRankingsExpanded;
             renderRankingView();
         });
-        panel.addView(yearlyRankingToggleButton, new LinearLayout.LayoutParams(
+        rankingBody.addView(yearlyRankingToggleButton, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
         yearlyRankingSection = new LinearLayout(this);
         yearlyRankingSection.setOrientation(LinearLayout.VERTICAL);
-        panel.addView(yearlyRankingSection);
+        rankingBody.addView(yearlyRankingSection);
 
         LinearLayout yearRow = new LinearLayout(this);
         yearRow.setGravity(Gravity.CENTER_VERTICAL);
