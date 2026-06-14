@@ -22,6 +22,7 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Header star button toggles a POC rankings page
 - Header crosshair button slides back to the current date/current month
 - Header calendar button opens the calendar date picker from either mode
+- App opens to a fingerprint-protected lock screen before showing snack records
 - Calendar date picker supports left/right swipe with slide animation to change months
 - Monthly snack-list mode shows every day in one month, including snack-free days
 - Monthly rows include weekday labels; only Saturday/Sunday weekday labels are colored blue/red

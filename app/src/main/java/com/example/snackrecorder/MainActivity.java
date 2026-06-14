@@ -2,12 +2,19 @@ package com.example.snackrecorder;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.KeyguardManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.hardware.biometrics.BiometricPrompt;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.CancellationSignal;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -44,6 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 public final class MainActivity extends Activity {
     private static final int ORANGE = Color.rgb(249, 115, 22);
@@ -101,6 +109,9 @@ public final class MainActivity extends Activity {
     private boolean allTimeRankingsExpanded;
     private boolean yearlyRankingsExpanded;
     private boolean slideInProgress;
+    private boolean appUnlocked;
+    private boolean authPromptShowing;
+    private CancellationSignal authCancellationSignal;
     private Spinner monthSpinner;
     private Spinner yearSpinner;
     private Spinner rankingYearSpinner;
@@ -137,8 +148,24 @@ public final class MainActivity extends Activity {
         visibleMonth = firstDayOfMonth(today);
         selectedRankingYear = today.get(Calendar.YEAR);
 
-        setContentView(createContentView());
-        renderSelectedDay();
+        setContentView(createLockedView());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!appUnlocked && !authPromptShowing) {
+            showBiometricPrompt();
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (appUnlocked) {
+            appUnlocked = false;
+            setContentView(createLockedView());
+        }
     }
 
     @Override
@@ -275,6 +302,94 @@ public final class MainActivity extends Activity {
         });
 
         return root;
+    }
+
+    private LinearLayout createLockedView() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setGravity(Gravity.CENTER);
+        content.setPadding(dp(24), dp(24), dp(24), dp(24));
+        content.setBackgroundColor(BACKGROUND);
+
+        TextView title = new TextView(this);
+        title.setText("Snack Recorder is locked");
+        title.setTextColor(TEXT_DARK);
+        title.setTextSize(24);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        title.setGravity(Gravity.CENTER);
+        content.addView(title);
+
+        TextView hint = new TextView(this);
+        hint.setText("Use your fingerprint to unlock your snack records.");
+        hint.setTextColor(TEXT_MUTED);
+        hint.setTextSize(16);
+        hint.setGravity(Gravity.CENTER);
+        hint.setPadding(0, dp(8), 0, dp(16));
+        content.addView(hint);
+
+        Button unlockButton = new Button(this);
+        unlockButton.setText("Unlock");
+        unlockButton.setAllCaps(false);
+        unlockButton.setOnClickListener(view -> showBiometricPrompt());
+        content.addView(unlockButton, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        return content;
+    }
+
+    private void showBiometricPrompt() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            Toast.makeText(this, "Fingerprint unlock requires Android 9 or newer", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        KeyguardManager keyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+        if (keyguardManager == null || !keyguardManager.isKeyguardSecure()) {
+            Toast.makeText(this, "Set up a screen lock and fingerprint first", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        authPromptShowing = true;
+        authCancellationSignal = new CancellationSignal();
+        Handler mainHandler = new Handler(Looper.getMainLooper());
+        Executor executor = mainHandler::post;
+        BiometricPrompt prompt = new BiometricPrompt.Builder(this)
+                .setTitle("Unlock Snack Recorder")
+                .setSubtitle("Confirm your fingerprint to view snack records")
+                .setNegativeButton("Cancel", executor, (DialogInterface dialog, int which) -> {
+                    authPromptShowing = false;
+                    Toast.makeText(this, "Snack Recorder remains locked", Toast.LENGTH_SHORT).show();
+                })
+                .build();
+
+        prompt.authenticate(authCancellationSignal, executor, new BiometricPrompt.AuthenticationCallback() {
+            @Override
+            public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                authPromptShowing = false;
+                unlockApp();
+            }
+
+            @Override
+            public void onAuthenticationError(int errorCode, CharSequence errString) {
+                authPromptShowing = false;
+                Toast.makeText(MainActivity.this, errString, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAuthenticationFailed() {
+                Toast.makeText(MainActivity.this, "Fingerprint not recognized", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void unlockApp() {
+        appUnlocked = true;
+        setContentView(createContentView());
+        renderSelectedDay();
+        renderMonthView();
+        renderRankingView();
     }
 
     private Button circularExportButton() {
