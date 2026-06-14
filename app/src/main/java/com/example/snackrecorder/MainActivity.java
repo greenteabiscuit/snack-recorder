@@ -109,6 +109,7 @@ public final class MainActivity extends Activity {
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
     private LinearLayout rankingPanel;
+    private LinearLayout allTimeRankingContent;
     private LinearLayout rankingContent;
     private TextView selectedDayTitle;
     private TextView selectedDayCount;
@@ -602,6 +603,10 @@ public final class MainActivity extends Activity {
         hint.setPadding(0, dp(2), 0, dp(8));
         panel.addView(hint);
 
+        allTimeRankingContent = new LinearLayout(this);
+        allTimeRankingContent.setOrientation(LinearLayout.VERTICAL);
+        panel.addView(allTimeRankingContent);
+
         LinearLayout yearRow = new LinearLayout(this);
         yearRow.setGravity(Gravity.CENTER_VERTICAL);
         yearRow.setPadding(0, 0, 0, dp(8));
@@ -1011,31 +1016,37 @@ public final class MainActivity extends Activity {
     }
 
     private void renderRankingView() {
-        if (rankingContent == null) {
+        if (allTimeRankingContent == null || rankingContent == null) {
             return;
         }
+
+        allTimeRankingContent.removeAllViews();
+        addRankingSection(allTimeRankingContent, "Most eaten snacks of all time", rankingRows(false, null));
+        addRankingSection(allTimeRankingContent, "Most eaten makers of all time", rankingRows(true, null));
 
         rankingContent.removeAllViews();
         addRankingSection("Most eaten snacks in " + selectedRankingYear, rankingRows(false, selectedRankingYear));
         addRankingSection("Most eaten makers in " + selectedRankingYear, rankingRows(true, selectedRankingYear));
-        addRankingSection("Most eaten snacks of all time", rankingRows(false, null));
-        addRankingSection("Most eaten makers of all time", rankingRows(true, null));
     }
 
     private void addRankingSection(String title, List<RankingRow> rows) {
+        addRankingSection(rankingContent, title, rows);
+    }
+
+    private void addRankingSection(LinearLayout container, String title, List<RankingRow> rows) {
         TextView sectionTitle = new TextView(this);
         sectionTitle.setText(title);
         sectionTitle.setTextColor(TEXT_DARK);
         sectionTitle.setTextSize(18);
         sectionTitle.setTypeface(Typeface.DEFAULT_BOLD);
         sectionTitle.setPadding(0, dp(12), 0, dp(4));
-        rankingContent.addView(sectionTitle);
+        container.addView(sectionTitle);
 
         TextView rankingText = new TextView(this);
         rankingText.setTextColor(rows.isEmpty() ? TEXT_MUTED : TEXT_DARK);
         rankingText.setTextSize(16);
         rankingText.setText(formatRankingRows(rows));
-        rankingContent.addView(rankingText);
+        container.addView(rankingText);
     }
 
     private CharSequence formatRankingRows(List<RankingRow> rows) {
