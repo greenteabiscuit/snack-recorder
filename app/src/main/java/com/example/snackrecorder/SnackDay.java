@@ -29,10 +29,15 @@ final class SnackDay {
 final class SnackRecord {
     private final String name;
     private final String maker;
+    private final ArrayList<String> otherSnacks;
 
-    SnackRecord(String name, String maker) {
+    SnackRecord(String name, String maker, List<String> otherSnacks) {
         this.name = name == null ? "" : name;
         this.maker = maker == null ? "" : maker;
+        this.otherSnacks = new ArrayList<>();
+        if (otherSnacks != null) {
+            this.otherSnacks.addAll(otherSnacks);
+        }
     }
 
     String getName() {
@@ -43,10 +48,26 @@ final class SnackRecord {
         return maker;
     }
 
+    List<String> getOtherSnacks() {
+        return Collections.unmodifiableList(otherSnacks);
+    }
+
     String displayText() {
+        StringBuilder text = new StringBuilder();
         if (maker == null || maker.trim().isEmpty()) {
-            return name;
+            text.append(name);
+        } else {
+            text.append(name).append(" — ").append(maker);
         }
-        return name + " — " + maker;
+        if (!otherSnacks.isEmpty()) {
+            text.append("\nOther: ");
+            for (int i = 0; i < otherSnacks.size(); i++) {
+                if (i > 0) {
+                    text.append("; ");
+                }
+                text.append(otherSnacks.get(i));
+            }
+        }
+        return text.toString();
     }
 }

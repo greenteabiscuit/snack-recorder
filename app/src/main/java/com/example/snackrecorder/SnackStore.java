@@ -40,6 +40,9 @@ final class SnackStore {
             for (SnackRecord snack : snacks) {
                 countSuggestion(snackCounts, displayNames, snack.getName());
                 countSuggestion(snackCounts, displayNames, snack.getMaker());
+                for (String otherSnack : snack.getOtherSnacks()) {
+                    countSuggestion(snackCounts, displayNames, otherSnack);
+                }
             }
         }
 
@@ -96,14 +99,14 @@ final class SnackStore {
         return days;
     }
 
-    void addSnack(String dateIso, String snack, String maker) {
+    void addSnack(String dateIso, String snack, String maker, List<String> otherSnacks) {
         Map<String, ArrayList<SnackRecord>> days = loadDays();
         ArrayList<SnackRecord> snacks = days.get(dateIso);
         if (snacks == null) {
             snacks = new ArrayList<>();
             days.put(dateIso, snacks);
         }
-        snacks.add(new SnackRecord(snack, maker));
+        snacks.add(new SnackRecord(snack, maker, otherSnacks));
         saveDays(days);
     }
 
@@ -121,19 +124,19 @@ final class SnackStore {
         saveDays(days);
     }
 
-    void updateSnack(String dateIso, int snackIndex, String snack, String maker) {
+    void updateSnack(String dateIso, int snackIndex, String snack, String maker, List<String> otherSnacks) {
         Map<String, ArrayList<SnackRecord>> days = loadDays();
         ArrayList<SnackRecord> snacks = days.get(dateIso);
         if (snacks == null || snackIndex < 0 || snackIndex >= snacks.size()) {
             return;
         }
 
-        snacks.set(snackIndex, new SnackRecord(snack, maker));
+        snacks.set(snackIndex, new SnackRecord(snack, maker, otherSnacks));
         saveDays(days);
     }
 
     String exportCsv() {
-        StringBuilder csv = new StringBuilder("date,snack,maker\n");
+        StringBuilder csv = new StringBuilder("date,snack,maker,other_snacks\n");
         TreeMap<String, ArrayList<SnackRecord>> sortedDays = new TreeMap<>(loadDays());
         for (Map.Entry<String, ArrayList<SnackRecord>> entry : sortedDays.entrySet()) {
             for (SnackRecord snack : entry.getValue()) {
@@ -142,10 +145,23 @@ final class SnackStore {
                 appendCsvField(csv, snack.getName());
                 csv.append(',');
                 appendCsvField(csv, snack.getMaker());
+                csv.append(',');
+                appendCsvField(csv, formatOtherSnacks(snack.getOtherSnacks()));
                 csv.append('\n');
             }
         }
         return csv.toString();
+    }
+
+    private String formatOtherSnacks(List<String> otherSnacks) {
+        StringBuilder value = new StringBuilder();
+        for (int i = 0; i < otherSnacks.size(); i++) {
+            if (i > 0) {
+                value.append("; ");
+            }
+            value.append(otherSnacks.get(i));
+        }
+        return value.toString();
     }
 
     private void appendCsvField(StringBuilder csv, String value) {
@@ -185,12 +201,20 @@ final class SnackStore {
                     Object snackValue = snackArray.get(j);
                     if (snackValue instanceof JSONObject) {
                         JSONObject snackObject = (JSONObject) snackValue;
+                        ArrayList<String> otherSnacks = new ArrayList<>();
+                        JSONArray otherSnackArray = snackObject.optJSONArray("otherSnacks");
+                        if (otherSnackArray != null) {
+                            for (int k = 0; k < otherSnackArray.length(); k++) {
+                                otherSnacks.add(otherSnackArray.optString(k, ""));
+                            }
+                        }
                         snacks.add(new SnackRecord(
                                 snackObject.optString("name", ""),
-                                snackObject.optString("maker", "")
+                                snackObject.optString("maker", ""),
+                                otherSnacks
                         ));
                     } else {
-                        snacks.add(new SnackRecord(String.valueOf(snackValue), ""));
+                        snacks.add(new SnackRecord(String.valueOf(snackValue), "", new ArrayList<>()));
                     }
                 }
                 days.put(dateIso, snacks);
@@ -210,6 +234,11 @@ final class SnackStore {
                     JSONObject snackObject = new JSONObject();
                     snackObject.put("name", snack.getName());
                     snackObject.put("maker", snack.getMaker());
+                    JSONArray otherSnacks = new JSONArray();
+                    for (String otherSnack : snack.getOtherSnacks()) {
+                        otherSnacks.put(otherSnack);
+                    }
+                    snackObject.put("otherSnacks", otherSnacks);
                     snacks.put(snackObject);
                 }
                 root.put(entry.getKey(), snacks);

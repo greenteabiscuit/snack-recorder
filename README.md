@@ -7,7 +7,7 @@ Native Android app for recording snacks eaten each day.
 Each day is represented by:
 
 - `dateIso`: the day in `yyyy-MM-dd` format
-- `snacks`: snack records with a required snack name and optional `maker`
+- `snacks`: snack records with a required snack name, optional `maker`, and optional list of `otherSnacks`
 - `snackCount`: calculated from `snacks.size()`
 
 Data is stored locally in `SharedPreferences` as JSON.
@@ -34,9 +34,9 @@ Data is stored locally in `SharedPreferences` as JSON.
 - Swipe left/right in monthly mode to move to the next/previous month
 - Swipe left/right on the main screen to move to the next/previous day
 - Swipe transitions use a quick slide animation
-- Add snack by typing a name, optionally typing a maker, and tapping **Add**
-- Edit snack names and makers with the ✎ button and remove them with the 🗑 button
-- Export all snacks as CSV with `date,snack,maker` columns
+- Add snack by typing a name, optionally typing a maker and other snacks eaten during the event, and tapping **Add**
+- Edit snack names, makers, and other snacks with the ✎ button and remove them with the 🗑 button
+- Export all snacks as CSV with `date,snack,maker,other_snacks` columns
 
 ## Build
 
