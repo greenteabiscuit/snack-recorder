@@ -15,8 +15,10 @@ import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -106,6 +108,7 @@ public final class MainActivity extends Activity {
     private float touchDownY;
     private boolean monthView;
     private boolean rankingView;
+    private boolean searchView;
     private boolean allTimeRankingsExpanded;
     private boolean yearlyRankingsExpanded;
     private boolean slideInProgress;
@@ -117,10 +120,12 @@ public final class MainActivity extends Activity {
     private Spinner rankingYearSpinner;
     private Button viewToggleButton;
     private Button rankingButton;
+    private Button searchButton;
     private GridLayout calendarGrid;
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
     private LinearLayout rankingPanel;
+    private LinearLayout searchPanel;
     private Button allTimeRankingToggleButton;
     private Button yearlyRankingToggleButton;
     private LinearLayout allTimeRankingContent;
@@ -131,10 +136,13 @@ public final class MainActivity extends Activity {
     private TextView monthTitle;
     private TextView monthSummary;
     private TextView monthAddDateLabel;
+    private TextView searchSummary;
+    private EditText searchInput;
     private AutoCompleteTextView snackInput;
     private AutoCompleteTextView makerInput;
     private EditText otherSnacksInput;
     private LinearLayout snackListContainer;
+    private LinearLayout searchResultsContainer;
     private ArrayAdapter<MonthRow> monthListAdapter;
     private int selectedRankingYear;
 
@@ -180,7 +188,7 @@ public final class MainActivity extends Activity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (calendarDialog == null && !slideInProgress && !rankingView) {
+        if (calendarDialog == null && !slideInProgress && !rankingView && !searchView) {
             switch (event.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN:
                     touchDownX = event.getX();
@@ -250,6 +258,11 @@ public final class MainActivity extends Activity {
         rankingButton.setTextSize(22);
         rankingButton.setOnClickListener(view -> toggleRankingView());
         titleRow.addView(rankingButton);
+
+        searchButton = compactButton("⌕");
+        searchButton.setTextSize(22);
+        searchButton.setOnClickListener(view -> toggleSearchView());
+        titleRow.addView(searchButton);
         content.addView(titleRow);
 
         TextView subtitle = new TextView(this);
@@ -271,6 +284,12 @@ public final class MainActivity extends Activity {
         ));
 
         content.addView(createRankingPanel(), new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
+        content.addView(createSearchPanel(), new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1f
@@ -390,6 +409,7 @@ public final class MainActivity extends Activity {
         renderSelectedDay();
         renderMonthView();
         renderRankingView();
+        renderSearchView();
     }
 
     private Button circularExportButton() {
@@ -406,6 +426,9 @@ public final class MainActivity extends Activity {
     }
 
     private void toggleMonthView() {
+        searchView = false;
+        searchPanel.setVisibility(View.GONE);
+        searchButton.setText("⌕");
         rankingView = false;
         rankingPanel.setVisibility(View.GONE);
         rankingButton.setText("★");
@@ -425,6 +448,9 @@ public final class MainActivity extends Activity {
     }
 
     private void toggleRankingView() {
+        searchView = false;
+        searchPanel.setVisibility(View.GONE);
+        searchButton.setText("⌕");
         rankingView = !rankingView;
         if (rankingView) {
             selectedDayPanel.setVisibility(View.GONE);
@@ -437,6 +463,31 @@ public final class MainActivity extends Activity {
 
         rankingPanel.setVisibility(View.GONE);
         rankingButton.setText("★");
+        if (monthView) {
+            monthPanel.setVisibility(View.VISIBLE);
+            renderMonthView();
+        } else {
+            selectedDayPanel.setVisibility(View.VISIBLE);
+            renderSelectedDay();
+        }
+    }
+
+    private void toggleSearchView() {
+        rankingView = false;
+        rankingPanel.setVisibility(View.GONE);
+        rankingButton.setText("★");
+        searchView = !searchView;
+        if (searchView) {
+            selectedDayPanel.setVisibility(View.GONE);
+            monthPanel.setVisibility(View.GONE);
+            searchPanel.setVisibility(View.VISIBLE);
+            searchButton.setText("1");
+            renderSearchView();
+            return;
+        }
+
+        searchPanel.setVisibility(View.GONE);
+        searchButton.setText("⌕");
         if (monthView) {
             monthPanel.setVisibility(View.VISIBLE);
             renderMonthView();
@@ -848,6 +899,73 @@ public final class MainActivity extends Activity {
         return panel;
     }
 
+    private LinearLayout createSearchPanel() {
+        LinearLayout panel = new LinearLayout(this);
+        searchPanel = panel;
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(14), dp(12), dp(14), dp(12));
+        panel.setBackground(roundRect(Color.WHITE, dp(18), Color.TRANSPARENT, 0));
+        panel.setVisibility(View.GONE);
+
+        TextView title = new TextView(this);
+        title.setText("Search snacks");
+        title.setTextColor(TEXT_DARK);
+        title.setTextSize(22);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        panel.addView(title);
+
+        TextView hint = new TextView(this);
+        hint.setText("Search across snack names, makers, other snacks, and dates.");
+        hint.setTextColor(TEXT_MUTED);
+        hint.setTextSize(13);
+        hint.setPadding(0, dp(2), 0, dp(8));
+        panel.addView(hint);
+
+        searchInput = new EditText(this);
+        searchInput.setHint("Search all months");
+        searchInput.setSingleLine(true);
+        searchInput.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence text, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence text, int start, int before, int count) {
+                renderSearchView();
+            }
+
+            @Override
+            public void afterTextChanged(Editable text) {
+            }
+        });
+        panel.addView(searchInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        searchSummary = new TextView(this);
+        searchSummary.setTextColor(ORANGE_DARK);
+        searchSummary.setTextSize(15);
+        searchSummary.setPadding(0, dp(8), 0, dp(8));
+        panel.addView(searchSummary);
+
+        ScrollView searchScroll = new ScrollView(this);
+        searchResultsContainer = new LinearLayout(this);
+        searchResultsContainer.setOrientation(LinearLayout.VERTICAL);
+        searchScroll.addView(searchResultsContainer, new ScrollView.LayoutParams(
+                ScrollView.LayoutParams.MATCH_PARENT,
+                ScrollView.LayoutParams.WRAP_CONTENT
+        ));
+        panel.addView(searchScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+        ));
+
+        return panel;
+    }
+
     private void showCalendarDialog() {
         visibleMonth = firstDayOfMonth(selectedDateCalendar());
         dayCells.clear();
@@ -1014,6 +1132,108 @@ public final class MainActivity extends Activity {
 
         for (int i = 0; i < snacks.size(); i++) {
             snackListContainer.addView(createSnackRow(snacks.get(i), i));
+        }
+    }
+
+    private void renderSearchView() {
+        if (searchInput == null || searchSummary == null || searchResultsContainer == null) {
+            return;
+        }
+
+        searchResultsContainer.removeAllViews();
+        String query = searchInput.getText().toString().trim().toLowerCase(Locale.US);
+        if (query.isEmpty()) {
+            searchSummary.setText("Enter a search term to find snack events.");
+            return;
+        }
+
+        ArrayList<SearchResult> results = new ArrayList<>();
+        List<SnackDay> days = snackStore.getAllDays();
+        for (int dayIndex = days.size() - 1; dayIndex >= 0; dayIndex--) {
+            SnackDay day = days.get(dayIndex);
+            List<SnackRecord> snacks = day.getSnacks();
+            for (int snackIndex = snacks.size() - 1; snackIndex >= 0; snackIndex--) {
+                SnackRecord snack = snacks.get(snackIndex);
+                if (matchesSearch(day.getDateIso(), snack, query)) {
+                    results.add(new SearchResult(day.getDateIso(), snackIndex, snack));
+                }
+            }
+        }
+
+        searchSummary.setText(results.size() + " matching event" + (results.size() == 1 ? "" : "s"));
+        if (results.isEmpty()) {
+            TextView emptyState = new TextView(this);
+            emptyState.setText("No matching snack events.");
+            emptyState.setTextColor(TEXT_MUTED);
+            emptyState.setTextSize(15);
+            emptyState.setPadding(0, dp(12), 0, 0);
+            searchResultsContainer.addView(emptyState);
+            return;
+        }
+
+        for (SearchResult result : results) {
+            searchResultsContainer.addView(createSearchResultRow(result));
+        }
+    }
+
+    private boolean matchesSearch(String dateIso, SnackRecord snack, String query) {
+        if (dateIso.toLowerCase(Locale.US).contains(query)) {
+            return true;
+        }
+        if (snack.getName().toLowerCase(Locale.US).contains(query)) {
+            return true;
+        }
+        if (snack.getMaker().toLowerCase(Locale.US).contains(query)) {
+            return true;
+        }
+        for (String otherSnack : snack.getOtherSnacks()) {
+            if (otherSnack.toLowerCase(Locale.US).contains(query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private LinearLayout createSearchResultRow(SearchResult result) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(6), 0, dp(6));
+        row.setOnClickListener(view -> showEditSnackDialog(result.dateIso, result.snackIndex, result.snackRecord));
+
+        TextView dateText = new TextView(this);
+        dateText.setText(searchResultDateLabel(result.dateIso));
+        dateText.setTextColor(TEXT_MUTED);
+        dateText.setTextSize(14);
+        row.addView(dateText, new LinearLayout.LayoutParams(
+                dp(108),
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        TextView snackText = new TextView(this);
+        snackText.setText(result.snackRecord.displayText());
+        snackText.setTextColor(TEXT_DARK);
+        snackText.setTextSize(16);
+        row.addView(snackText, new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+        ));
+
+        Button editButton = compactButton("✎");
+        editButton.setTextSize(18);
+        editButton.setOnClickListener(view -> showEditSnackDialog(result.dateIso, result.snackIndex, result.snackRecord));
+        row.addView(editButton);
+
+        return row;
+    }
+
+    private String searchResultDateLabel(String dateIso) {
+        Calendar date = Calendar.getInstance();
+        try {
+            date.setTime(isoDateFormat.parse(dateIso));
+            return compactDateFormat.format(date.getTime()) + "\n" + date.get(Calendar.YEAR);
+        } catch (Exception ignored) {
+            return dateIso;
         }
     }
 
@@ -1394,6 +1614,18 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private static final class SearchResult {
+        private final String dateIso;
+        private final int snackIndex;
+        private final SnackRecord snackRecord;
+
+        private SearchResult(String dateIso, int snackIndex, SnackRecord snackRecord) {
+            this.dateIso = dateIso;
+            this.snackIndex = snackIndex;
+            this.snackRecord = snackRecord;
+        }
+    }
+
     private static final class RankingRow {
         private final String label;
         private final int count;
@@ -1445,6 +1677,7 @@ public final class MainActivity extends Activity {
         renderSelectedDay();
         renderMonthView();
         renderRankingView();
+        renderSearchView();
     }
 
     private Calendar monthAddDateCalendar() {
