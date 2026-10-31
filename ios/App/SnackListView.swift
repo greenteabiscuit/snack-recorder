@@ -1,25 +1,58 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum SnackMode: String, CaseIterable, Identifiable {
+    case day = "Day", month = "Month", rankings = "Rankings", search = "Search"
+    var id: Self { self }
+    var icon: String {
+        switch self { case .day: "calendar.day.timeline.left"; case .month: "list.bullet"; case .rankings: "star"; case .search: "magnifyingglass" }
+    }
+}
+
 @MainActor
 final class SnackViewModel: ObservableObject {
     @Published private(set) var archive = SnackArchive()
     @Published var error: String?
     @Published private(set) var loaded = false
+    @Published var selectedDay = LaunchSettings.today
+    @Published var visibleMonth = SnackDates.monthStart(LaunchSettings.today)
+    @Published var mode = SnackMode.day
+    @Published var rankingYear = SnackDates.calendar.component(.year, from: LaunchSettings.today)
+    @Published var query = ""
+    @Published var allTimeExpanded = false
+    @Published var yearlyExpanded = false
     private let repository: SnackRepository
 
     init() {
-        let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("SnackRecorder", isDirectory: true)
+        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let directory = base.appendingPathComponent(LaunchSettings.uiTesting ? "SnackRecorderUITests" : "SnackRecorder", isDirectory: true)
         repository = SnackRepository(url: directory.appendingPathComponent("days.json"))
-        do {
-            archive = try repository.load()
-            loaded = true
-        } catch {
+        #if DEBUG
+        if LaunchSettings.uiTesting && ProcessInfo.processInfo.arguments.contains("--reset-data") {
+            try? FileManager.default.removeItem(at: directory)
+            if ProcessInfo.processInfo.arguments.contains("--seed-data") {
+                let seed = SnackArchive(days: [
+                    "2025-12-31": [SnackRecord(name: "Cookie", maker: "Bakery")],
+                    "2026-10-30": [SnackRecord(name: "cookie", maker: "Bakery", otherSnacks: ["Chips"])],
+                    "2026-10-31": [SnackRecord(name: "Cookie", maker: "Tea House", otherSnacks: ["Chocolate", "Cookie"]),
+                                   SnackRecord(name: "Apple", maker: "Farm")]
+                ])
+                try? repository.save(seed)
+            }
+        }
+        #endif
+        reload()
+    }
+
+    func reload() {
+        do { archive = try repository.load(); loaded = true }
+        catch {
+            loaded = false
             self.error = "Your records could not be loaded. The original file has been kept. \(error.localizedDescription)"
         }
     }
 
+    @discardableResult
     func update(_ change: (inout SnackArchive) throws -> Void) -> Bool {
         guard loaded else { return false }
         do {
@@ -28,151 +61,149 @@ final class SnackViewModel: ObservableObject {
             try repository.save(candidate)
             archive = candidate
             return true
-        } catch {
-            self.error = error.localizedDescription
-            return false
+        } catch { self.error = error.localizedDescription; return false }
+    }
+
+    func select(_ date: Date) { selectedDay = date; visibleMonth = SnackDates.monthStart(date) }
+    func today() { withAnimation(.easeInOut(duration: 0.18)) { select(LaunchSettings.today) } }
+    func shift(_ amount: Int) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            if mode == .month { visibleMonth = SnackDates.shifted(visibleMonth, by: amount, component: .month) }
+            else { select(SnackDates.shifted(selectedDay, by: amount, component: .day)) }
         }
+    }
+    func defaultAddDate() -> Date {
+        SnackDates.monthStart(selectedDay) == visibleMonth ? selectedDay : visibleMonth
     }
 }
 
-private struct SnackEdit: Identifiable {
+struct SnackEdit: Identifiable {
     let id = UUID()
-    let day: String
+    var date: Date
     let index: Int?
+    let allowsDateChange: Bool
     var record: SnackRecord
+    var day: String { SnackDates.key(for: date) }
 }
 
 struct SnackListView: View {
-    @StateObject private var model = SnackViewModel()
-    @State private var date = Date()
+    @ObservedObject var model: SnackViewModel
     @State private var edit: SnackEdit?
+    @State private var calendarPresented = false
+    @State private var transferPresented = false
     @State private var exporting = false
-    @State private var export = CSVDocument(text: "")
-
-    private var day: String { SnackDates.key(for: date) }
-    private var records: [SnackRecord] { model.archive.days[day, default: []] }
+    @State private var export = SnackDocument(data: Data(), contentType: .commaSeparatedText)
+    @State private var exportName = "snack-recorder"
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    DatePicker("Day", selection: $date, displayedComponents: .date)
-                    Button("Today") { date = Date() }
-                }
-                Section("\(records.count) snacks") {
-                    if records.isEmpty {
-                        Text("No snacks recorded for this day.").foregroundStyle(.secondary)
-                    }
-                    ForEach(Array(records.enumerated()), id: \.offset) { index, record in
-                        Button {
-                            edit = SnackEdit(day: day, index: index, record: record)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(record.name).foregroundStyle(.primary)
-                                if !record.maker.isEmpty { Text(record.maker).font(.subheadline).foregroundStyle(.secondary) }
-                                if !record.otherSnacks.isEmpty {
-                                    Text("Other: " + record.otherSnacks.joined(separator: "; "))
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .accessibilityHint("Edit snack")
-                    }
-                    .onDelete { offsets in
-                        _ = model.update { archive in
-                            for index in offsets.sorted(by: >) { try archive.remove(day: day, index: index) }
-                        }
-                    }
+            TabView(selection: $model.mode) {
+                ForEach(SnackMode.allCases) { mode in
+                    screen(mode)
+                        .tabItem { Label(mode.rawValue, systemImage: mode.icon) }
+                        .tag(mode)
                 }
             }
             .navigationTitle("Snack Recorder")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Export CSV", systemImage: "square.and.arrow.up") {
-                        export = CSVDocument(text: model.archive.csv())
-                        exporting = true
-                    }.disabled(!model.loaded)
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    Button("Today", systemImage: "scope") { model.today() }
+                        .accessibilityIdentifier("go-today")
+                    Button("Choose snack day", systemImage: "calendar") { calendarPresented = true }
+                        .accessibilityIdentifier("show-calendar")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add snack", systemImage: "plus") {
-                        edit = SnackEdit(day: day, index: nil, record: SnackRecord(name: ""))
-                    }.disabled(!model.loaded)
+                    Menu {
+                        Button("Export CSV", systemImage: "tablecells") {
+                            export = SnackDocument(data: Data(model.archive.csv().utf8), contentType: .commaSeparatedText)
+                            exportName = "snack-recorder"; exporting = true
+                        }.accessibilityIdentifier("export-csv")
+                        Button("Back up as JSON", systemImage: "externaldrive") {
+                            do {
+                                export = SnackDocument(data: try model.archive.encoded(), contentType: .json)
+                                exportName = "snack-recorder-backup"; exporting = true
+                            } catch { model.error = error.localizedDescription }
+                        }
+                        Button("Import records", systemImage: "square.and.arrow.down") { transferPresented = true }
+                            .accessibilityIdentifier("import-records")
+                    } label: { Label("Files", systemImage: "square.and.arrow.up") }
+                    .accessibilityIdentifier("files-menu").disabled(!model.loaded)
                 }
             }
             .sheet(item: $edit) { item in
-                SnackEditor(item: item) { record in
-                    model.update { try $0.save(record, day: item.day, index: item.index) }
-                }
+                SnackEditor(item: item, archive: model.archive) { record, day in
+                    model.update { try $0.save(record, day: day, index: item.index) }
+                }.privacyProtected()
             }
-            .fileExporter(isPresented: $exporting, document: export, contentType: .commaSeparatedText,
-                          defaultFilename: "snack-recorder") { result in
+            .sheet(isPresented: $calendarPresented) {
+                NavigationStack {
+                    SnackCalendar(model: model) { date in model.select(date); calendarPresented = false }
+                        .navigationTitle("Choose snack day").navigationBarTitleDisplayMode(.inline)
+                        .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { calendarPresented = false } } }
+                }.presentationDetents([.large]).privacyProtected()
+            }
+            .sheet(isPresented: $transferPresented) { SnackTransferView(model: model).privacyProtected() }
+            .fileExporter(isPresented: $exporting, document: export, contentType: export.contentType, defaultFilename: exportName) { result in
                 if case .failure(let error) = result { model.error = error.localizedDescription }
             }
-            .alert("Couldn’t complete that", isPresented: Binding(
-                get: { model.error != nil }, set: { if !$0 { model.error = nil } }
-            )) { Button("OK") { model.error = nil } } message: { Text(model.error ?? "") }
+            .alert("Couldn’t complete that", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
+                Button("OK") { model.error = nil }
+            } message: { Text(model.error ?? "") }
         }
     }
-}
 
-private struct SnackEditor: View {
-    @Environment(\.dismiss) private var dismiss
-    let item: SnackEdit
-    let save: (SnackRecord) -> Bool
-    @State private var name: String
-    @State private var maker: String
-    @State private var others: [String]
-    @State private var saveFailed = false
-
-    init(item: SnackEdit, save: @escaping (SnackRecord) -> Bool) {
-        self.item = item
-        self.save = save
-        _name = State(initialValue: item.record.name)
-        _maker = State(initialValue: item.record.maker)
-        _others = State(initialValue: item.record.otherSnacks)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(item.day) {
-                    TextField("Snack name", text: $name)
-                    TextField("Maker (optional)", text: $maker)
-                }
-                Section("Other snacks") {
-                    ForEach(others.indices, id: \.self) { index in
-                        TextField("Snack", text: $others[index])
-                    }.onDelete { others.remove(atOffsets: $0) }
-                    Button("Add another snack") { others.append("") }
-                }
-                if saveFailed { Text("Couldn’t save. Your changes are still here; please retry.").foregroundStyle(.red) }
-            }
-            .navigationTitle(item.index == nil ? "Add snack" : "Edit snack")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let record = SnackRecord(name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-                                                 maker: maker, otherSnacks: others.filter { !$0.isEmpty })
-                        if save(record) { dismiss() } else { saveFailed = true }
-                    }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
+    @ViewBuilder private func screen(_ mode: SnackMode) -> some View {
+        if !model.loaded {
+            ContentUnavailableView {
+                Label("Records unavailable", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text("Your stored file has been kept. Try loading it again before editing or importing.")
+            } actions: { Button("Try again") { model.reload() } }
+        } else {
+            switch mode {
+            case .day: DailySnacksView(model: model, edit: $edit)
+            case .month: MonthlySnacksView(model: model, edit: $edit)
+            case .rankings: SnackRankingsView(model: model)
+            case .search: SnackSearchView(model: model, edit: $edit)
             }
         }
     }
 }
 
-struct CSVDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.commaSeparatedText] }
-    var text: String
-    init(text: String) { self.text = text }
+struct SnackDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText, .json] }
+    var data: Data
+    var contentType: UTType
+    init(data: Data, contentType: UTType) { self.data = data; self.contentType = contentType }
     init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents, let text = String(data: data, encoding: .utf8) else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        self.text = text
+        guard let data = configuration.file.regularFileContents else { throw CocoaError(.fileReadCorruptFile) }
+        self.data = data; contentType = configuration.contentType
     }
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: Data(text.utf8))
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { FileWrapper(regularFileWithContents: data) }
+}
+
+extension View {
+    func privacyProtected() -> some View { modifier(PrivacyProtection()) }
+
+    func snackSwipe(_ action: @escaping (Int) -> Void) -> some View {
+        simultaneousGesture(DragGesture(minimumDistance: 30).onEnded { value in
+            let x = value.translation.width, y = value.translation.height
+            if abs(x) >= 72 && abs(x) > abs(y) * 1.5 { action(x < 0 ? 1 : -1) }
+        })
+    }
+}
+
+private struct PrivacyProtection: ViewModifier {
+    @Environment(\.scenePhase) private var phase
+    func body(content: Content) -> some View {
+        content.overlay {
+            if phase != .active {
+                ZStack {
+                    SnackTheme.background.ignoresSafeArea()
+                    Label("Snack Recorder", systemImage: "lock.fill").font(.title2.bold())
+                }
+            }
+        }
     }
 }

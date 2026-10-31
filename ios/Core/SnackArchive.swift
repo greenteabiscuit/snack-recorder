@@ -7,6 +7,12 @@ public struct SnackArchive: Sendable {
 
     public init(data: Data) throws {
         days = try JSONDecoder().decode([String: [SnackRecord]].self, from: data)
+        for (day, records) in days {
+            guard SnackDates.date(for: day) != nil else { throw ArchiveError.invalidDate(day) }
+            guard records.allSatisfy({ !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) else {
+                throw ArchiveError.emptyName
+            }
+        }
     }
 
     public func encoded() throws -> Data {
@@ -16,6 +22,7 @@ public struct SnackArchive: Sendable {
     }
 
     public mutating func save(_ record: SnackRecord, day: String, index: Int? = nil) throws {
+        guard SnackDates.date(for: day) != nil else { throw ArchiveError.invalidDate(day) }
         guard !record.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw ArchiveError.emptyName
         }
@@ -49,18 +56,20 @@ public struct SnackArchive: Sendable {
     }
 
     private static func csvField(_ value: String) -> String {
-        guard value.contains(where: { ",\"\n\r".contains($0) }) else { return value }
+        guard value.unicodeScalars.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r" }) else { return value }
         return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
 }
 
 public enum ArchiveError: LocalizedError {
     case emptyName, missingRecord
+    case invalidDate(String)
 
     public var errorDescription: String? {
         switch self {
         case .emptyName: "Enter a snack name."
         case .missingRecord: "This snack could not be found."
+        case .invalidDate(let day): "Invalid snack date: \(day). Use yyyy-MM-dd."
         }
     }
 }

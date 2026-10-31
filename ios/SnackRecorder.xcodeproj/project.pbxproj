@@ -1,25 +1,356 @@
 // !$*UTF8*$!
 { archiveVersion = 1; classes = {}; objectVersion = 56; objects = {
-D57660E2B4429CDA7CBB58A7 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/SnackRecorderApp.swift"; sourceTree = "<group>"; };
-FD14AF81932737B8F95B8455 = { isa = PBXBuildFile; fileRef = D57660E2B4429CDA7CBB58A7; };
-4FCE49FA09F0EC13C1B9326D = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/SnackListView.swift"; sourceTree = "<group>"; };
-B4C6A2B5AB49ED8B7549F08B = { isa = PBXBuildFile; fileRef = 4FCE49FA09F0EC13C1B9326D; };
-89C7067E6ADB6477FE045479 = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Core/SnackRecord.swift"; sourceTree = "<group>"; };
-E380553A33A0CFD49798185B = { isa = PBXBuildFile; fileRef = 89C7067E6ADB6477FE045479; };
-9FBD4DDF60B40DBD254DCDEF = { isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Core/SnackArchive.swift"; sourceTree = "<group>"; };
-178A05CB66756BAC6925FE43 = { isa = PBXBuildFile; fileRef = 9FBD4DDF60B40DBD254DCDEF; };
-DD3B86D1EF21B9FB2E1EDC30 = { isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SnackRecorder.app; sourceTree = BUILT_PRODUCTS_DIR; };
-62BCE9422FF2D14F69AB80A1 = { isa = PBXGroup; children = (D57660E2B4429CDA7CBB58A7, 4FCE49FA09F0EC13C1B9326D, 89C7067E6ADB6477FE045479, 9FBD4DDF60B40DBD254DCDEF, FE0A091FDBFB3E9C31B7A1BD); sourceTree = "<group>"; };
-FE0A091FDBFB3E9C31B7A1BD = { isa = PBXGroup; children = (DD3B86D1EF21B9FB2E1EDC30); name = Products; sourceTree = "<group>"; };
-2EB56BE3C2D93CDAB0C52E67 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (FD14AF81932737B8F95B8455, B4C6A2B5AB49ED8B7549F08B, E380553A33A0CFD49798185B, 178A05CB66756BAC6925FE43); runOnlyForDeploymentPostprocessing = 0; };
-AF39DD055C3EF8226FBE929D = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-87DF60DE337FB58864343E39 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
-61AD50A9B9189CC3CF187456 = { isa = PBXNativeTarget; buildConfigurationList = 6814DB48E543EF8E20CDF461; buildPhases = (2EB56BE3C2D93CDAB0C52E67, AF39DD055C3EF8226FBE929D, 87DF60DE337FB58864343E39); buildRules = (); dependencies = (); name = SnackRecorder; productName = SnackRecorder; productReference = DD3B86D1EF21B9FB2E1EDC30; productType = "com.apple.product-type.application"; };
-F6F4DA8D93E88A08220E03B7 = { isa = PBXProject; attributes = { BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2620; TargetAttributes = { 61AD50A9B9189CC3CF187456 = { CreatedOnToolsVersion = 26.2; }; }; }; buildConfigurationList = 5D7731714D3E69D68AA8D7ED; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = 62BCE9422FF2D14F69AB80A1; productRefGroup = FE0A091FDBFB3E9C31B7A1BD; projectDirPath = ""; projectRoot = ""; targets = (61AD50A9B9189CC3CF187456); };
-BFD315016DE16320F7E2120C = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 6.0; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; }; name = Debug; };
-1D8C0C6B1D22EA8C7669B263 = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 6.0; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_OPTIMIZATION_LEVEL = "-O"; }; name = Release; };
-5D7731714D3E69D68AA8D7ED = { isa = XCConfigurationList; buildConfigurations = (BFD315016DE16320F7E2120C, 1D8C0C6B1D22EA8C7669B263); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
-75BB3D5A44EA88B6630AB580 = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 6.0; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "Snack Recorder"; INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your private snack records."; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; ENABLE_PREVIEWS = YES; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; }; name = Debug; };
-78E9FF212122B0C0397A6DB4 = { isa = XCBuildConfiguration; buildSettings = { CLANG_ENABLE_MODULES = YES; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SWIFT_VERSION = 6.0; SWIFT_STRICT_CONCURRENCY = complete; SWIFT_OPTIMIZATION_LEVEL = "-O"; PRODUCT_NAME = "$(TARGET_NAME)"; PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "Snack Recorder"; INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your private snack records."; INFOPLIST_KEY_UILaunchScreen_Generation = YES; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"; TARGETED_DEVICE_FAMILY = "1,2"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; MARKETING_VERSION = 0.1.0; ENABLE_PREVIEWS = YES; }; name = Release; };
-6814DB48E543EF8E20CDF461 = { isa = XCConfigurationList; buildConfigurations = (75BB3D5A44EA88B6630AB580, 78E9FF212122B0C0397A6DB4); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+D57660E2B4429CDA7CBB58A7 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackRecorderApp.swift";
+    sourceTree = "<group>";
+};
+FD14AF81932737B8F95B8455 = {
+    isa = PBXBuildFile;
+    fileRef = D57660E2B4429CDA7CBB58A7;
+};
+4FCE49FA09F0EC13C1B9326D = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackListView.swift";
+    sourceTree = "<group>";
+};
+B4C6A2B5AB49ED8B7549F08B = {
+    isa = PBXBuildFile;
+    fileRef = 4FCE49FA09F0EC13C1B9326D;
+};
+89C7067E6ADB6477FE045479 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "Core/SnackRecord.swift";
+    sourceTree = "<group>";
+};
+E380553A33A0CFD49798185B = {
+    isa = PBXBuildFile;
+    fileRef = 89C7067E6ADB6477FE045479;
+};
+9FBD4DDF60B40DBD254DCDEF = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "Core/SnackArchive.swift";
+    sourceTree = "<group>";
+};
+178A05CB66756BAC6925FE43 = {
+    isa = PBXBuildFile;
+    fileRef = 9FBD4DDF60B40DBD254DCDEF;
+};
+773E4FDB1BE3803929FED389 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "Core/SnackQueries.swift";
+    sourceTree = "<group>";
+};
+81CB08451C2EE76FAFD80141 = {
+    isa = PBXBuildFile;
+    fileRef = 773E4FDB1BE3803929FED389;
+};
+5732C334E44B9C92EA85A675 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "Core/SnackTransfer.swift";
+    sourceTree = "<group>";
+};
+456A4B713BCEA88667632E14 = {
+    isa = PBXBuildFile;
+    fileRef = 5732C334E44B9C92EA85A675;
+};
+F2284BEEE51F75BE6DE31E86 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackCalendar.swift";
+    sourceTree = "<group>";
+};
+5768E589497D09D6B2961659 = {
+    isa = PBXBuildFile;
+    fileRef = F2284BEEE51F75BE6DE31E86;
+};
+B1561EB9F9789F8292FFFE59 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackRecordsViews.swift";
+    sourceTree = "<group>";
+};
+0273CAB85B804594F69831EF = {
+    isa = PBXBuildFile;
+    fileRef = B1561EB9F9789F8292FFFE59;
+};
+D8DED25DFC0C842719088C3D = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackEditor.swift";
+    sourceTree = "<group>";
+};
+364D33FF4D1212ED6185F968 = {
+    isa = PBXBuildFile;
+    fileRef = D8DED25DFC0C842719088C3D;
+};
+79D629CB0388405794762582 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = "App/SnackTransferView.swift";
+    sourceTree = "<group>";
+};
+5B4CFCD7168684CCA978B15B = {
+    isa = PBXBuildFile;
+    fileRef = 79D629CB0388405794762582;
+};
+DD3B86D1EF21B9FB2E1EDC30 = {
+    isa = PBXFileReference;
+    explicitFileType = wrapper.application;
+    includeInIndex = 0;
+    path = SnackRecorder.app;
+    sourceTree = BUILT_PRODUCTS_DIR;
+};
+20E338624CEE29D0EFFEAD85 = {
+    isa = PBXFileReference;
+    lastKnownFileType = folder.assetcatalog;
+    path = Assets.xcassets;
+    sourceTree = "<group>";
+};
+C922BAF45D313CD0BF588CBB = {
+    isa = PBXBuildFile;
+    fileRef = 20E338624CEE29D0EFFEAD85;
+};
+B2D73A5742D51160930A4E52 = {
+    isa = PBXFileReference;
+    lastKnownFileType = sourcecode.swift;
+    path = UITests/SnackRecorderUITests.swift;
+    sourceTree = "<group>";
+};
+BE407783B97FE48B746D4DF8 = {
+    isa = PBXBuildFile;
+    fileRef = B2D73A5742D51160930A4E52;
+};
+33C337BCD18D1B1C1B2EBA2C = {
+    isa = PBXFileReference;
+    explicitFileType = wrapper.cfbundle;
+    includeInIndex = 0;
+    path = SnackRecorderUITests.xctest;
+    sourceTree = BUILT_PRODUCTS_DIR;
+};
+62BCE9422FF2D14F69AB80A1 = {
+    isa = PBXGroup;
+    children = (D57660E2B4429CDA7CBB58A7, 4FCE49FA09F0EC13C1B9326D, 89C7067E6ADB6477FE045479, 9FBD4DDF60B40DBD254DCDEF, 773E4FDB1BE3803929FED389, 5732C334E44B9C92EA85A675, F2284BEEE51F75BE6DE31E86, B1561EB9F9789F8292FFFE59, D8DED25DFC0C842719088C3D, 79D629CB0388405794762582, 20E338624CEE29D0EFFEAD85, B2D73A5742D51160930A4E52, FE0A091FDBFB3E9C31B7A1BD);
+    sourceTree = "<group>";
+};
+FE0A091FDBFB3E9C31B7A1BD = {
+    isa = PBXGroup;
+    children = (DD3B86D1EF21B9FB2E1EDC30, 33C337BCD18D1B1C1B2EBA2C);
+    name = Products;
+    sourceTree = "<group>";
+};
+2EB56BE3C2D93CDAB0C52E67 = {
+    isa = PBXSourcesBuildPhase;
+    buildActionMask = 2147483647;
+    files = (FD14AF81932737B8F95B8455, B4C6A2B5AB49ED8B7549F08B, E380553A33A0CFD49798185B, 178A05CB66756BAC6925FE43, 81CB08451C2EE76FAFD80141, 456A4B713BCEA88667632E14, 5768E589497D09D6B2961659, 0273CAB85B804594F69831EF, 364D33FF4D1212ED6185F968, 5B4CFCD7168684CCA978B15B);
+    runOnlyForDeploymentPostprocessing = 0;
+};
+AF39DD055C3EF8226FBE929D = {
+    isa = PBXFrameworksBuildPhase;
+    buildActionMask = 2147483647;
+    files = ();
+    runOnlyForDeploymentPostprocessing = 0;
+};
+87DF60DE337FB58864343E39 = {
+    isa = PBXResourcesBuildPhase;
+    buildActionMask = 2147483647;
+    files = (C922BAF45D313CD0BF588CBB);
+    runOnlyForDeploymentPostprocessing = 0;
+};
+61AD50A9B9189CC3CF187456 = {
+    isa = PBXNativeTarget;
+    buildConfigurationList = 6814DB48E543EF8E20CDF461;
+    buildPhases = (2EB56BE3C2D93CDAB0C52E67, AF39DD055C3EF8226FBE929D, 87DF60DE337FB58864343E39);
+    buildRules = ();
+    dependencies = ();
+    name = SnackRecorder;
+    productName = SnackRecorder;
+    productReference = DD3B86D1EF21B9FB2E1EDC30;
+    productType = "com.apple.product-type.application";
+};
+19FE77B134B2ACBE6E942E45 = {
+    isa = PBXSourcesBuildPhase;
+    buildActionMask = 2147483647;
+    files = (BE407783B97FE48B746D4DF8);
+    runOnlyForDeploymentPostprocessing = 0;
+};
+3DDD014B50A4CB7CB4B4C5A6 = {
+    isa = PBXContainerItemProxy;
+    containerPortal = F6F4DA8D93E88A08220E03B7;
+    proxyType = 1;
+    remoteGlobalIDString = 61AD50A9B9189CC3CF187456;
+    remoteInfo = SnackRecorder;
+};
+6176B977F600F04EFDE7793A = {
+    isa = PBXTargetDependency;
+    target = 61AD50A9B9189CC3CF187456;
+    targetProxy = 3DDD014B50A4CB7CB4B4C5A6;
+};
+40BF99F9E62637AF5430A224 = {
+    isa = PBXNativeTarget;
+    buildConfigurationList = DAFE6B4AE7F615235D51AC8B;
+    buildPhases = (19FE77B134B2ACBE6E942E45);
+    buildRules = ();
+    dependencies = (6176B977F600F04EFDE7793A);
+    name = SnackRecorderUITests;
+    productName = SnackRecorderUITests;
+    productReference = 33C337BCD18D1B1C1B2EBA2C;
+    productType = "com.apple.product-type.bundle.ui-testing";
+};
+F6F4DA8D93E88A08220E03B7 = {
+    isa = PBXProject;
+    attributes = { BuildIndependentTargetsInParallel = YES;
+    LastUpgradeCheck = 2620;
+    TargetAttributes = { 61AD50A9B9189CC3CF187456 = { CreatedOnToolsVersion = 26.2;
+    };
+    };
+    };
+    buildConfigurationList = 5D7731714D3E69D68AA8D7ED;
+    compatibilityVersion = "Xcode 14.0";
+    developmentRegion = en;
+    hasScannedForEncodings = 0;
+    knownRegions = (en, Base);
+    mainGroup = 62BCE9422FF2D14F69AB80A1;
+    productRefGroup = FE0A091FDBFB3E9C31B7A1BD;
+    projectDirPath = "";
+    projectRoot = "";
+    targets = (61AD50A9B9189CC3CF187456, 40BF99F9E62637AF5430A224);
+};
+BFD315016DE16320F7E2120C = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+    };
+    name = Debug;
+};
+1D8C0C6B1D22EA8C7669B263 = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-O";
+    };
+    name = Release;
+};
+5D7731714D3E69D68AA8D7ED = {
+    isa = XCConfigurationList;
+    buildConfigurations = (BFD315016DE16320F7E2120C, 1D8C0C6B1D22EA8C7669B263);
+    defaultConfigurationIsVisible = 0;
+    defaultConfigurationName = Release;
+};
+75BB3D5A44EA88B6630AB580 = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+    PRODUCT_NAME = "$(TARGET_NAME)";
+    PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder;
+    GENERATE_INFOPLIST_FILE = YES;
+    INFOPLIST_KEY_CFBundleDisplayName = "Snack Recorder";
+    INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your private snack records.";
+    INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+    INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+    TARGETED_DEVICE_FAMILY = "1,2";
+    SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+    CODE_SIGN_STYLE = Automatic;
+    CURRENT_PROJECT_VERSION = 1;
+    MARKETING_VERSION = 0.1.0;
+    ENABLE_PREVIEWS = YES;
+    ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+    };
+    name = Debug;
+};
+78E9FF212122B0C0397A6DB4 = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-O";
+    PRODUCT_NAME = "$(TARGET_NAME)";
+    PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder;
+    GENERATE_INFOPLIST_FILE = YES;
+    INFOPLIST_KEY_CFBundleDisplayName = "Snack Recorder";
+    INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock your private snack records.";
+    INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+    INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+    INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+    TARGETED_DEVICE_FAMILY = "1,2";
+    SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+    CODE_SIGN_STYLE = Automatic;
+    CURRENT_PROJECT_VERSION = 1;
+    MARKETING_VERSION = 0.1.0;
+    ENABLE_PREVIEWS = YES;
+    ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+    };
+    name = Release;
+};
+6814DB48E543EF8E20CDF461 = {
+    isa = XCConfigurationList;
+    buildConfigurations = (75BB3D5A44EA88B6630AB580, 78E9FF212122B0C0397A6DB4);
+    defaultConfigurationIsVisible = 0;
+    defaultConfigurationName = Release;
+};
+651D637619756FF1A8400F67 = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+    PRODUCT_NAME = "$(TARGET_NAME)";
+    PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder.uitests;
+    GENERATE_INFOPLIST_FILE = YES;
+    TARGETED_DEVICE_FAMILY = "1,2";
+    TEST_TARGET_NAME = SnackRecorder;
+    CODE_SIGN_STYLE = Automatic;
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+    };
+    name = Debug;
+};
+93D1ABD72F8ECFF4A5798A0D = {
+    isa = XCBuildConfiguration;
+    buildSettings = { CLANG_ENABLE_MODULES = YES;
+    SDKROOT = iphoneos;
+    IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+    SWIFT_VERSION = 6.0;
+    SWIFT_STRICT_CONCURRENCY = complete;
+    SWIFT_OPTIMIZATION_LEVEL = "-O";
+    PRODUCT_NAME = "$(TARGET_NAME)";
+    PRODUCT_BUNDLE_IDENTIFIER = com.greenteabiscuit.snackrecorder.uitests;
+    GENERATE_INFOPLIST_FILE = YES;
+    TARGETED_DEVICE_FAMILY = "1,2";
+    TEST_TARGET_NAME = SnackRecorder;
+    CODE_SIGN_STYLE = Automatic;
+    };
+    name = Release;
+};
+DAFE6B4AE7F615235D51AC8B = {
+    isa = XCConfigurationList;
+    buildConfigurations = (651D637619756FF1A8400F67, 93D1ABD72F8ECFF4A5798A0D);
+    defaultConfigurationIsVisible = 0;
+    defaultConfigurationName = Release;
+};
 }; rootObject = F6F4DA8D93E88A08220E03B7; }
