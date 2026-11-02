@@ -53,20 +53,14 @@ struct SnackCalendar: View {
     @ObservedObject var model: SnackViewModel
     let select: (Date) -> Void
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 7)
-    private var dates: [Date] { SnackDates.days(in: model.visibleMonth) }
-    private var offset: Int { SnackDates.calendar.component(.weekday, from: model.visibleMonth) - 1 }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 MonthControls(month: $model.visibleMonth)
-                LazyVGrid(columns: columns, spacing: 7) {
-                    ForEach(Array(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].enumerated()), id: \.offset) { index, label in
-                        Text(label).font(.caption.bold()).foregroundStyle(index == 0 ? Color.red : index == 6 ? Color.blue : Color.secondary)
-                    }
-                    ForEach(0..<offset, id: \.self) { _ in Color.clear.frame(height: 62).accessibilityHidden(true) }
-                    ForEach(dates, id: \.self) { date in cell(date) }
-                }.padding(.horizontal, 12)
+                SnackSlidingPage(date: model.visibleMonth) { month in
+                    grid(for: month)
+                }
                 Text("Select a day to view its snacks. Swipe to change months.")
                     .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center).padding()
             }
@@ -76,6 +70,18 @@ struct SnackCalendar: View {
         .snackSwipe { delta in
             withAnimation(.easeInOut(duration: 0.18)) { model.visibleMonth = SnackDates.shifted(model.visibleMonth, by: delta, component: .month) }
         }
+    }
+
+    private func grid(for month: Date) -> some View {
+        let dates = SnackDates.days(in: month)
+        let offset = SnackDates.calendar.component(.weekday, from: month) - 1
+        return LazyVGrid(columns: columns, spacing: 7) {
+            ForEach(Array(["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].enumerated()), id: \.offset) { index, label in
+                Text(label).font(.caption.bold()).foregroundStyle(index == 0 ? Color.red : index == 6 ? Color.blue : Color.secondary)
+            }
+            ForEach(0..<offset, id: \.self) { _ in Color.clear.frame(height: 62).accessibilityHidden(true) }
+            ForEach(dates, id: \.self) { date in cell(date) }
+        }.padding(.horizontal, 12)
     }
 
     private func cell(_ date: Date) -> some View {

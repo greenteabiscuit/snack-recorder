@@ -4,7 +4,6 @@ struct DailySnacksView: View {
     @ObservedObject var model: SnackViewModel
     @Binding var edit: SnackEdit?
     private var key: String { SnackDates.key(for: model.selectedDay) }
-    private var records: [SnackRecord] { model.archive.days[key, default: []] }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,7 +17,17 @@ struct DailySnacksView: View {
                 Spacer(minLength: 0)
                 Button("Next day", systemImage: "chevron.right") { model.shift(1) }.labelStyle(.iconOnly).frame(width: 44, height: 44)
             }.padding(.horizontal)
-            List {
+            SnackSlidingPage(date: model.selectedDay) { day in
+                records(for: day)
+            }
+            .snackSwipe { model.shift($0) }
+        }.background(SnackTheme.background)
+    }
+
+    private func records(for day: Date) -> some View {
+        let key = SnackDates.key(for: day)
+        let records = model.archive.days[key, default: []]
+        return List {
                 Section("\(records.count) snack\(records.count == 1 ? "" : "s") recorded") {
                     if records.isEmpty { Text("No snacks recorded for this day.").foregroundStyle(.secondary) }
                     ForEach(Array(records.enumerated()), id: \.offset) { index, record in
@@ -27,25 +36,32 @@ struct DailySnacksView: View {
                 }
                 Section {
                     Button {
-                        edit = SnackEdit(date: model.selectedDay, index: nil, allowsDateChange: false, record: SnackRecord(name: ""))
+                        edit = SnackEdit(date: day, index: nil, allowsDateChange: false, record: SnackRecord(name: ""))
                     } label: { Label("Add snack", systemImage: "plus.circle.fill").font(.headline) }
                     .accessibilityIdentifier("day-add")
                 }
-            }.accessibilityIdentifier("day-content")
-                .snackSwipe { model.shift($0) }
-        }.background(SnackTheme.background)
+        }.accessibilityIdentifier("day-content")
     }
 }
 
 struct MonthlySnacksView: View {
     @ObservedObject var model: SnackViewModel
     @Binding var edit: SnackEdit?
-    private var dates: [Date] { SnackDates.days(in: model.visibleMonth) }
-    private var monthRecords: [[SnackRecord]] { dates.map { model.archive.days[SnackDates.key(for: $0), default: []] } }
 
     var body: some View {
         VStack(spacing: 0) {
             MonthControls(month: $model.visibleMonth)
+            SnackSlidingPage(date: model.visibleMonth) { month in
+                records(for: month)
+            }
+            .snackSwipe { model.shift($0) }
+        }.background(SnackTheme.background)
+    }
+
+    private func records(for month: Date) -> some View {
+        let dates = SnackDates.days(in: month)
+        let monthRecords = dates.map { model.archive.days[SnackDates.key(for: $0), default: []] }
+        return VStack(spacing: 0) {
             HStack {
                 Text("\(monthRecords.reduce(0) { $0 + $1.count }) snack events · \(monthRecords.filter { !$0.isEmpty }.count) snack days")
                     .font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("month-summary")
@@ -59,26 +75,49 @@ struct MonthlySnacksView: View {
                     let key = SnackDates.key(for: date)
                     let records = model.archive.days[key, default: []]
                     HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(SnackDates.label(date, format: "MMM d")).font(.subheadline).foregroundStyle(.primary)
-                            Text(SnackDates.label(date, format: "EEE")).font(.caption)
-                                .foregroundStyle(weekdayColor(date))
-                        }.frame(width: 62, alignment: .leading).padding(.top, 5)
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(records.enumerated()), id: \.offset) { index, record in
-                                SnackEventRow(day: key, index: index, record: record, model: model, edit: $edit)
+                        if records.isEmpty {
+                            HStack(alignment: .top, spacing: 12) {
+                                dateLabel(date)
+                                Spacer(minLength: 0)
                             }
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                            .contentShape(Rectangle())
+                            .onTapGesture { addSnack(on: date) }
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityAction { addSnack(on: date) }
+                            .accessibilityLabel("Add snack for \(key)").accessibilityIdentifier("month-add-\(key)")
+                        } else {
                             Button {
                                 edit = SnackEdit(date: date, index: nil, allowsDateChange: false, record: SnackRecord(name: ""))
-                            } label: { Label("Add snack", systemImage: "plus").font(.subheadline) }
+                            } label: { dateLabel(date).contentShape(Rectangle()) }
+                            .buttonStyle(.plain)
                             .accessibilityLabel("Add snack for \(key)").accessibilityIdentifier("month-add-\(key)")
+                            VStack(alignment: .leading, spacing: 12) {
+                                ForEach(Array(records.enumerated()), id: \.offset) { index, record in
+                                    SnackEventRow(day: key, index: index, record: record, model: model, edit: $edit)
+                                }
+                            }
                         }
                     }.padding(.vertical, 3).accessibilityElement(children: .contain).accessibilityIdentifier("month-day-\(key)")
+                    .listRowBackground(SnackDates.calendar.isDate(date, inSameDayAs: LaunchSettings.today)
+                        ? Color(uiColor: .systemGray5)
+                        : Color(uiColor: .systemBackground))
                 }
             }.listStyle(.plain).accessibilityIdentifier("month-content")
-                .snackSwipe { model.shift($0) }
-                .id(SnackDates.key(for: model.visibleMonth))
-        }.background(SnackTheme.background)
+        }
+    }
+
+    private func dateLabel(_ date: Date) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(SnackDates.label(date, format: "MMM d")).font(.subheadline).foregroundStyle(.primary)
+            Text(SnackDates.label(date, format: "EEE")).font(.caption)
+                .foregroundStyle(weekdayColor(date))
+        }.frame(width: 62, alignment: .leading).padding(.top, 5)
+    }
+
+    private func addSnack(on date: Date) {
+        edit = SnackEdit(date: date, index: nil, allowsDateChange: false, record: SnackRecord(name: ""))
     }
 
     private func weekdayColor(_ date: Date) -> Color {

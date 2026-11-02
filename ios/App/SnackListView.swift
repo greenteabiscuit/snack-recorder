@@ -183,6 +183,39 @@ struct SnackDocument: FileDocument {
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { FileWrapper(regularFileWithContents: data) }
 }
 
+struct SnackSlidingPage<Content: View>: View {
+    let date: Date
+    private let content: (Date) -> Content
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var displayedDate: Date
+    @State private var movingForward = true
+
+    init(date: Date, @ViewBuilder content: @escaping (Date) -> Content) {
+        self.date = date
+        self.content = content
+        _displayedDate = State(initialValue: date)
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // A fixed date keeps the departing page's records intact during the slide.
+            content(displayedDate)
+                .id(displayedDate)
+                .transition(reduceMotion ? .opacity : .asymmetric(
+                    insertion: .move(edge: movingForward ? .trailing : .leading),
+                    removal: .move(edge: movingForward ? .leading : .trailing)
+                ))
+        }
+        .clipped()
+        .onChange(of: date) { oldDate, newDate in
+            movingForward = newDate > oldDate
+            withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.28)) {
+                displayedDate = newDate
+            }
+        }
+    }
+}
+
 extension View {
     func privacyProtected() -> some View { modifier(PrivacyProtection()) }
 
