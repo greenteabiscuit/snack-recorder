@@ -12,14 +12,15 @@ On the simulator, enable Face ID using Features > Face ID > Enrolled, then choos
 
 | Android behavior | iOS implementation |
 | --- | --- |
-| Daily snack records with makers and other snacks | Day tab; add, edit, delete, and persistence |
+| Daily snack records with makers and other snacks | Month tab; add, edit, delete, and persistence |
+| Past snack suggestions | Suggestions tab shows up to three records near the dates one month and one year ago, with links to each date |
 | Calendar counts, selected day, today highlight | Calendar toolbar button opens a month grid |
 | Month/year selection and previous/next controls | Month view and calendar, with current/past year menu |
 | Monthly list including snack-free days | Month tab; one date column, events, and per-day Add button |
 | Fixed-date add from a monthly row | Per-day Add keeps the month view open |
 | Monthly Add with selectable date | Add button above month list |
 | Snack events and snack-day totals | Monthly summary |
-| Day/month/calendar swipes and Today shortcut | Horizontal swipes, animated date changes, Today toolbar button |
+| Month/calendar swipes and Today shortcut | Horizontal swipes, animated date changes, Today toolbar button |
 | Up to 3 autocomplete suggestions | Name, maker, and other-snack inputs; history frequency then alphabetical order, followed by Android's common defaults |
 | All-time/yearly rankings | Rankings tab; separate collapsible sections, top 10 per category |
 | Main-name, overall-including-others, and maker rankings | Same counting and tie-break rules as Android |

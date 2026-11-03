@@ -1,46 +1,58 @@
 import SwiftUI
 
-struct DailySnacksView: View {
+struct SnackSuggestionsView: View {
     @ObservedObject var model: SnackViewModel
     @Binding var edit: SnackEdit?
-    private var key: String { SnackDates.key(for: model.selectedDay) }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button("Previous day", systemImage: "chevron.left") { model.shift(-1) }.labelStyle(.iconOnly).frame(width: 44, height: 44)
-                Spacer(minLength: 0)
-                VStack(spacing: 4) {
-                    Text(SnackDates.label(model.selectedDay, format: "EEE, MMM d, yyyy")).font(.headline).multilineTextAlignment(.center)
-                    Text(key).font(.caption).foregroundStyle(.secondary).accessibilityIdentifier("selected-day")
-                }
-                Spacer(minLength: 0)
-                Button("Next day", systemImage: "chevron.right") { model.shift(1) }.labelStyle(.iconOnly).frame(width: 44, height: 44)
-            }.padding(.horizontal)
-            SnackSlidingPage(date: model.selectedDay) { day in
-                records(for: day)
-            }
-            .snackSwipe { model.shift($0) }
-        }.background(SnackTheme.background)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                suggestion("1 month ago", component: .month, identifier: "month")
+                suggestion("1 year ago", component: .year, identifier: "year")
+            }.padding(16)
+        }.background(SnackTheme.background).accessibilityIdentifier("suggestions-content")
     }
 
-    private func records(for day: Date) -> some View {
-        let key = SnackDates.key(for: day)
-        let records = model.archive.days[key, default: []]
-        return List {
-                Section("\(records.count) snack\(records.count == 1 ? "" : "s") recorded") {
-                    if records.isEmpty { Text("No snacks recorded for this day.").foregroundStyle(.secondary) }
-                    ForEach(Array(records.enumerated()), id: \.offset) { index, record in
-                        SnackEventRow(day: key, index: index, record: record, model: model, edit: $edit)
-                    }
+    private func suggestion(_ title: String, component: Calendar.Component, identifier: String) -> some View {
+        let date = SnackDates.shifted(LaunchSettings.today, by: -1, component: component)
+        let samples = model.archive.anniversarySamples(around: date, through: LaunchSettings.today)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                model.jump(to: date)
+            } label: {
+                HStack {
+                    Text(title).font(.headline)
+                    Spacer()
+                    Text(SnackDates.label(date, format: "MMM d, yyyy"))
+                    Image(systemName: "arrow.right")
                 }
-                Section {
-                    Button {
-                        edit = SnackEdit(date: day, index: nil, allowsDateChange: false, record: SnackRecord(name: ""))
-                    } label: { Label("Add snack", systemImage: "plus.circle.fill").font(.headline) }
-                    .accessibilityIdentifier("day-add")
+                .font(.subheadline).frame(minHeight: 44)
+            }.accessibilityIdentifier("suggestion-jump-\(identifier)")
+            if samples.isEmpty {
+                Text("No snack records yet.").foregroundStyle(.secondary).frame(minHeight: 44)
+            } else {
+                ForEach(samples) { event in
+                    HStack(spacing: 8) {
+                        Button {
+                            if let sampleDate = SnackDates.date(for: event.day) {
+                                edit = SnackEdit(date: sampleDate, index: event.index, allowsDateChange: false, record: event.record)
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(event.record.name).font(.subheadline.weight(.medium)).foregroundStyle(.primary).lineLimit(1)
+                                if !event.record.maker.isEmpty {
+                                    Text(event.record.maker).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                }
+                            }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading).contentShape(Rectangle())
+                        }.buttonStyle(.plain).accessibilityIdentifier("suggestion-record-\(identifier)-\(event.id)")
+                        Button(event.day) {
+                            if let sampleDate = SnackDates.date(for: event.day) { model.jump(to: sampleDate) }
+                        }.font(.caption).frame(minHeight: 44)
+                    }.overlay(alignment: .top) { Divider() }
                 }
-        }.accessibilityIdentifier("day-content")
+            }
+        }.padding(.horizontal, 14)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -70,6 +82,7 @@ struct MonthlySnacksView: View {
                     edit = SnackEdit(date: model.defaultAddDate(), index: nil, allowsDateChange: true, record: SnackRecord(name: ""))
                 }.font(.subheadline.bold()).accessibilityIdentifier("month-add")
             }.padding(.horizontal).padding(.bottom, 8)
+            ScrollViewReader { proxy in
             List {
                 ForEach(dates, id: \.self) { date in
                     let key = SnackDates.key(for: date)
@@ -100,11 +113,23 @@ struct MonthlySnacksView: View {
                             }
                         }
                     }.padding(.vertical, 3).accessibilityElement(children: .contain).accessibilityIdentifier("month-day-\(key)")
+                    .id(key)
                     .listRowBackground(SnackDates.calendar.isDate(date, inSameDayAs: LaunchSettings.today)
                         ? Color(uiColor: .systemGray5)
                         : Color(uiColor: .systemBackground))
                 }
             }.listStyle(.plain).accessibilityIdentifier("month-content")
+                .onAppear {
+                    if SnackDates.monthStart(model.selectedDay) == month {
+                        DispatchQueue.main.async { proxy.scrollTo(SnackDates.key(for: model.selectedDay), anchor: .top) }
+                    }
+                }
+                .onChange(of: model.selectedDay) { _, date in
+                    if SnackDates.monthStart(date) == month {
+                        DispatchQueue.main.async { proxy.scrollTo(SnackDates.key(for: date), anchor: .top) }
+                    }
+                }
+            }
         }
     }
 
@@ -163,12 +188,20 @@ struct SnackSearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            TextField("Names, makers, other snacks, or dates", text: $model.query)
-                .textFieldStyle(.roundedBorder).textInputAutocapitalization(.never).autocorrectionDisabled()
-                .accessibilityIdentifier("search-field").padding()
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("Search snacks, makers, or dates", text: $model.query)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .accessibilityLabel("Search snacks, makers, or dates")
+                    .accessibilityIdentifier("search-field")
+            }
+            .padding(.horizontal, 14).frame(minHeight: 56)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+            .overlay { RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.4)) }
+            .padding()
             List {
                 if model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Enter a search term to find snack events.").foregroundStyle(.secondary)
+                    EmptyView()
                 } else {
                     Section("\(results.count) matching event\(results.count == 1 ? "" : "s")") {
                         if results.isEmpty { Text("No matching snack events.").foregroundStyle(.secondary) }

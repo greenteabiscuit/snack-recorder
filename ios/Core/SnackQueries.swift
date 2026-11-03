@@ -20,6 +20,24 @@ public enum RankingCategory: String, CaseIterable, Sendable {
 }
 
 extension SnackArchive {
+    public func anniversarySamples(around date: Date, limit: Int = 3, through latest: Date = Date()) -> [SnackEvent] {
+        let target = SnackDates.calendar.startOfDay(for: date)
+        let lastDay = SnackDates.key(for: latest)
+        let distances = Dictionary(uniqueKeysWithValues: days.keys.compactMap { day -> (String, Int)? in
+            guard let dayDate = SnackDates.date(for: day),
+                  let distance = SnackDates.calendar.dateComponents([.day], from: target, to: SnackDates.calendar.startOfDay(for: dayDate)).day else { return nil }
+            return (day, abs(distance))
+        })
+        let ordered = events.filter { $0.day <= lastDay }.sorted { left, right in
+            let leftDistance = distances[left.day] ?? .max
+            let rightDistance = distances[right.day] ?? .max
+            if leftDistance != rightDistance { return leftDistance < rightDistance }
+            if left.day != right.day { return left.day < right.day }
+            return left.index < right.index
+        }
+        return Array(ordered.prefix(max(0, limit)))
+    }
+
     public var events: [SnackEvent] {
         days.keys.sorted().flatMap { day in
             days[day, default: []].enumerated().map { SnackEvent(day: day, index: $0.offset, record: $0.element) }

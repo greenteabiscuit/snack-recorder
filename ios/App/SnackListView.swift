@@ -2,10 +2,10 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 enum SnackMode: String, CaseIterable, Identifiable {
-    case day = "Day", month = "Month", rankings = "Rankings", search = "Search"
+    case suggestions = "Suggestions", month = "Month", rankings = "Rankings", search = "Search"
     var id: Self { self }
     var icon: String {
-        switch self { case .day: "calendar.day.timeline.left"; case .month: "list.bullet"; case .rankings: "star"; case .search: "magnifyingglass" }
+        switch self { case .suggestions: "lightbulb"; case .month: "list.bullet"; case .rankings: "star"; case .search: "magnifyingglass" }
     }
 }
 
@@ -16,7 +16,7 @@ final class SnackViewModel: ObservableObject {
     @Published private(set) var loaded = false
     @Published var selectedDay = LaunchSettings.today
     @Published var visibleMonth = SnackDates.monthStart(LaunchSettings.today)
-    @Published var mode = SnackMode.day
+    @Published var mode = SnackMode.suggestions
     @Published var rankingYear = SnackDates.calendar.component(.year, from: LaunchSettings.today)
     @Published var query = ""
     @Published var allTimeExpanded = false
@@ -65,7 +65,8 @@ final class SnackViewModel: ObservableObject {
     }
 
     func select(_ date: Date) { selectedDay = date; visibleMonth = SnackDates.monthStart(date) }
-    func today() { withAnimation(.easeInOut(duration: 0.18)) { select(LaunchSettings.today) } }
+    func jump(to date: Date) { select(date); mode = .month }
+    func today() { withAnimation(.easeInOut(duration: 0.18)) { jump(to: LaunchSettings.today) } }
     func shift(_ amount: Int) {
         withAnimation(.easeInOut(duration: 0.18)) {
             if mode == .month { visibleMonth = SnackDates.shifted(visibleMonth, by: amount, component: .month) }
@@ -88,6 +89,7 @@ struct SnackEdit: Identifiable {
 
 struct SnackListView: View {
     @ObservedObject var model: SnackViewModel
+    @Environment(\.scenePhase) private var scenePhase
     @State private var edit: SnackEdit?
     @State private var calendarPresented = false
     @State private var transferPresented = false
@@ -106,6 +108,9 @@ struct SnackListView: View {
             }
             .navigationTitle("Snack Recorder")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background { edit = nil; calendarPresented = false; transferPresented = false }
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarLeading) {
                     Button("Today", systemImage: "scope") { model.today() }
@@ -138,7 +143,7 @@ struct SnackListView: View {
             }
             .sheet(isPresented: $calendarPresented) {
                 NavigationStack {
-                    SnackCalendar(model: model) { date in model.select(date); calendarPresented = false }
+                    SnackCalendar(model: model) { date in model.jump(to: date); calendarPresented = false }
                         .navigationTitle("Choose snack day").navigationBarTitleDisplayMode(.inline)
                         .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { calendarPresented = false } } }
                 }.presentationDetents([.large]).privacyProtected()
@@ -162,7 +167,7 @@ struct SnackListView: View {
             } actions: { Button("Try again") { model.reload() } }
         } else {
             switch mode {
-            case .day: DailySnacksView(model: model, edit: $edit)
+            case .suggestions: SnackSuggestionsView(model: model, edit: $edit)
             case .month: MonthlySnacksView(model: model, edit: $edit)
             case .rankings: SnackRankingsView(model: model)
             case .search: SnackSearchView(model: model, edit: $edit)

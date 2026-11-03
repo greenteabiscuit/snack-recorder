@@ -3,6 +3,21 @@ import XCTest
 @testable import SnackRecorderCore
 
 final class SnackParityTests: XCTestCase {
+    func testAnniversarySamplesUseNearestDaysAndLimitResults() {
+        let record = SnackRecord(name: "Snack")
+        let archive = SnackArchive(days: [
+            "2025-10-29": [record], "2025-10-30": [record],
+            "2025-10-31": [record], "2025-11-01": [record],
+            "2026-11-01": [record]
+        ])
+        let target = SnackDates.date(for: "2025-10-31")!
+        let latest = SnackDates.date(for: "2026-10-31")!
+        XCTAssertEqual(archive.anniversarySamples(around: target, through: latest).map(\.day),
+                       ["2025-10-31", "2025-10-30", "2025-11-01"])
+        let many = SnackArchive(days: ["2025-10-31": Array(repeating: record, count: 4)])
+        XCTAssertEqual(many.anniversarySamples(around: target, through: latest).count, 3)
+        XCTAssertEqual(SnackArchive().anniversarySamples(around: target, through: latest).count, 0)
+    }
     private var archive: SnackArchive {
         SnackArchive(days: [
             "2025-12-31": [SnackRecord(name: "Cookie", maker: "Bakery")],
