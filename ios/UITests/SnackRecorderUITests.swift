@@ -199,6 +199,28 @@ final class SnackRecorderUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["visible-month"].label, "October 2026")
     }
 
+    @MainActor func testMonthSwipesAcrossRowsDoNotOpenEditor() {
+        let app = launch(seed: true)
+        app.tabBars.buttons["Month"].tap()
+        let record = app.buttons["edit-2026-10-31-0"]
+        XCTAssertTrue(record.waitForExistence(timeout: 5))
+        let start = record.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: start.withOffset(CGVector(dx: -150, dy: 0)))
+        XCTAssertEqual(app.staticTexts["visible-month"].label, "November 2026")
+        XCTAssertFalse(app.buttons["save-snack"].exists)
+
+        let list = app.collectionViews["month-content"]
+        let emptyStart = list.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5))
+        emptyStart.press(forDuration: 0.1, thenDragTo: emptyStart.withOffset(CGVector(dx: 150, dy: 0)))
+        XCTAssertEqual(app.staticTexts["visible-month"].label, "October 2026")
+        XCTAssertFalse(app.buttons["save-snack"].exists)
+
+        XCTAssertTrue(record.waitForExistence(timeout: 5))
+        record.tap()
+        XCTAssertTrue(app.buttons["save-snack"].waitForExistence(timeout: 5))
+        app.buttons["cancel-snack"].tap()
+    }
+
     @MainActor func testAuthenticationFailureKeepsRecordsHidden() {
         let app = launch(seed: true, extra: ["--authentication-fails"])
         XCTAssertTrue(app.staticTexts["Authentication was cancelled. Your records remain locked."].exists)
