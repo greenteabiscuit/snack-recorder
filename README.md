@@ -1,6 +1,8 @@
 # Snack Recorder
 
-Native Android app for recording snacks eaten each day.
+Native Android and iOS apps for recording snacks eaten each day.
+
+The existing Android app remains in `app/` and builds as before. The new SwiftUI iOS app is being developed alongside it in [`ios/`](ios/README.md), with its own Xcode project. The feature list below describes the Android app; the iOS README tracks current coverage and remaining work.
 
 ## Core model
 
