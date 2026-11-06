@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SnackSuggestionsView: View {
     @ObservedObject var model: SnackViewModel
@@ -66,7 +67,7 @@ struct MonthlySnacksView: View {
             SnackSlidingPage(date: model.visibleMonth) { month in
                 records(for: month)
             }
-            .snackSwipe { model.shift($0) }
+            .background(MonthSwipeGesture { model.shift($0) })
         }.background(SnackTheme.background)
     }
 
@@ -147,6 +148,74 @@ struct MonthlySnacksView: View {
 
     private func weekdayColor(_ date: Date) -> Color {
         switch SnackDates.calendar.component(.weekday, from: date) { case 1: .red; case 7: .blue; default: .secondary }
+    }
+}
+
+// A direction-aware pan cancels row presses only after a horizontal drag begins.
+// Vertical pans remain available to the list's scrolling gesture.
+private struct MonthSwipeGesture: UIViewRepresentable {
+    var action: (Int) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
+
+    func makeUIView(context: Context) -> GestureHost {
+        GestureHost(coordinator: context.coordinator)
+    }
+
+    func updateUIView(_ view: GestureHost, context: Context) {
+        context.coordinator.action = action
+    }
+
+    static func dismantleUIView(_ view: GestureHost, coordinator: Coordinator) {
+        view.detachGesture()
+    }
+
+    final class GestureHost: UIView {
+        let coordinator: Coordinator
+        private let pan: UIPanGestureRecognizer
+
+        init(coordinator: Coordinator) {
+            self.coordinator = coordinator
+            pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.handlePan(_:)))
+            super.init(frame: .zero)
+            pan.delegate = coordinator
+            pan.cancelsTouchesInView = true
+            isUserInteractionEnabled = false
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        override func didMoveToSuperview() {
+            super.didMoveToSuperview()
+            pan.view?.removeGestureRecognizer(pan)
+            superview?.addGestureRecognizer(pan)
+        }
+
+        func detachGesture() { pan.view?.removeGestureRecognizer(pan) }
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var action: (Int) -> Void
+
+        init(action: @escaping (Int) -> Void) { self.action = action }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * 1.5
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+            true
+        }
+
+        @objc func handlePan(_ pan: UIPanGestureRecognizer) {
+            guard pan.state == .ended else { return }
+            let translation = pan.translation(in: pan.view)
+            if abs(translation.x) >= 72 && abs(translation.x) > abs(translation.y) * 1.5 {
+                action(translation.x < 0 ? 1 : -1)
+            }
+        }
     }
 }
 
