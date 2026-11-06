@@ -13,8 +13,10 @@ On the simulator, enable Face ID using Features > Face ID > Enrolled, then choos
 | Android behavior | iOS implementation |
 | --- | --- |
 | Daily snack records with makers and other snacks | Month tab; add, edit, delete, and persistence |
+| Other snacks as tags | Optional tags input with removable chips and suggestions; saved tags show as pills |
 | Past snack suggestions | Suggestions tab shows up to three records near the dates one month and one year ago, with links to each date |
 | Calendar counts, selected day, today highlight | Calendar toolbar button opens a month grid |
+| Calendar month summary | Snack eating days and total snacks for the visible month |
 | Month/year selection and previous/next controls | Month view and calendar, with current/past year menu |
 | Monthly list including snack-free days | Month tab; one date column, events, and per-day Add button |
 | Fixed-date add from a monthly row | Per-day Add keeps the month view open |

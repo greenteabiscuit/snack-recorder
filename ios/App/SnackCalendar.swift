@@ -58,6 +58,8 @@ struct SnackCalendar: View {
         ScrollView {
             VStack(spacing: 16) {
                 MonthControls(month: $model.visibleMonth)
+                Text(monthSummary).font(.subheadline.bold()).foregroundStyle(SnackTheme.orange)
+                    .accessibilityIdentifier("calendar-month-summary")
                 SnackSlidingPage(date: model.visibleMonth) { month in
                     grid(for: month)
                 }
@@ -70,6 +72,13 @@ struct SnackCalendar: View {
         .snackSwipe { delta in
             withAnimation(.easeInOut(duration: 0.18)) { model.visibleMonth = SnackDates.shifted(model.visibleMonth, by: delta, component: .month) }
         }
+    }
+
+    private var monthSummary: String {
+        let records = SnackDates.days(in: model.visibleMonth).map { model.archive.days[SnackDates.key(for: $0), default: []] }
+        let days = records.filter { !$0.isEmpty }.count
+        let snacks = records.reduce(0) { $0 + $1.count }
+        return "\(days) snack eating day\(days == 1 ? "" : "s") · \(snacks) snack\(snacks == 1 ? "" : "s") in \(SnackDates.label(model.visibleMonth, format: "MMMM"))"
     }
 
     private func grid(for month: Date) -> some View {

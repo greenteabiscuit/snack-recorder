@@ -167,7 +167,7 @@ struct SnackEventRow: View {
                     Text(record.name).foregroundStyle(.primary).font(.body.weight(.medium))
                     if !record.maker.isEmpty { Text(record.maker).font(.subheadline).foregroundStyle(.secondary) }
                     if !record.otherSnacks.isEmpty {
-                        Text("Other: " + record.otherSnacks.joined(separator: "; ")).font(.caption).foregroundStyle(.secondary)
+                        TagFlow { ForEach(Array(record.otherSnacks.enumerated()), id: \.offset) { SnackTag(text: $0.element) } }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("edit-\(day)-\(index)").accessibilityHint("Edit snack")
