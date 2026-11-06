@@ -21,6 +21,7 @@ import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -39,7 +40,6 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.MultiAutoCompleteTextView;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -123,6 +123,7 @@ public final class MainActivity extends Activity {
     private Button rankingButton;
     private Button searchButton;
     private GridLayout calendarGrid;
+    private TextView calendarMonthSummary;
     private LinearLayout selectedDayPanel;
     private LinearLayout monthPanel;
     private LinearLayout rankingPanel;
@@ -141,7 +142,7 @@ public final class MainActivity extends Activity {
     private EditText searchInput;
     private AutoCompleteTextView snackInput;
     private AutoCompleteTextView makerInput;
-    private EditText otherSnacksInput;
+    private OtherSnacksTagsInput otherSnacksInput;
     private LinearLayout snackListContainer;
     private LinearLayout searchResultsContainer;
     private ArrayAdapter<MonthRow> monthListAdapter;
@@ -703,11 +704,11 @@ public final class MainActivity extends Activity {
             public View getView(int position, View convertView, ViewGroup parent) {
                 LinearLayout row;
                 TextView dateText;
-                TextView snackText;
+                LinearLayout snackContent;
                 if (convertView instanceof LinearLayout && ((LinearLayout) convertView).getChildCount() == 4) {
                     row = (LinearLayout) convertView;
                     dateText = (TextView) row.getChildAt(0);
-                    snackText = (TextView) row.getChildAt(1);
+                    snackContent = (LinearLayout) row.getChildAt(1);
                 } else {
                     row = new LinearLayout(MainActivity.this);
                     row.setGravity(Gravity.CENTER_VERTICAL);
@@ -720,10 +721,9 @@ public final class MainActivity extends Activity {
                             LinearLayout.LayoutParams.WRAP_CONTENT
                     ));
 
-                    snackText = new TextView(MainActivity.this);
-                    snackText.setTextColor(TEXT_DARK);
-                    snackText.setTextSize(16);
-                    row.addView(snackText, new LinearLayout.LayoutParams(
+                    snackContent = new LinearLayout(MainActivity.this);
+                    snackContent.setOrientation(LinearLayout.VERTICAL);
+                    row.addView(snackContent, new LinearLayout.LayoutParams(
                             0,
                             LinearLayout.LayoutParams.WRAP_CONTENT,
                             1f
@@ -741,12 +741,11 @@ public final class MainActivity extends Activity {
                 MonthRow monthRow = getItem(position);
                 if (monthRow != null) {
                     dateText.setText(monthRow.dateLabel);
-                    snackText.setText(monthRow.snacks);
+                    snackContent.removeAllViews();
                     Button editButton = (Button) row.getChildAt(2);
                     Button deleteButton = (Button) row.getChildAt(3);
                     if (monthRow.snackIndex >= 0 && monthRow.snackRecord != null) {
-                        snackText.setTextColor(TEXT_DARK);
-                        snackText.setTypeface(Typeface.DEFAULT);
+                        snackContent.addView(createSnackDetails(monthRow.snackRecord, 16));
                         row.setOnClickListener(view -> showEditSnackDialog(monthRow.dateIso, monthRow.snackIndex, monthRow.snackRecord));
                         editButton.setText("✎");
                         editButton.setVisibility(View.VISIBLE);
@@ -757,8 +756,6 @@ public final class MainActivity extends Activity {
                             refreshAllViews();
                         });
                     } else {
-                        snackText.setTextColor(ORANGE_DARK);
-                        snackText.setTypeface(Typeface.DEFAULT_BOLD);
                         row.setOnClickListener(view -> showAddSnackDialog(monthRowDateCalendar(monthRow), false));
                         editButton.setText("＋");
                         editButton.setVisibility(View.VISIBLE);
@@ -1017,6 +1014,14 @@ public final class MainActivity extends Activity {
         content.addView(hint);
 
         content.addView(createMonthControls());
+
+        calendarMonthSummary = new TextView(this);
+        calendarMonthSummary.setTextColor(ORANGE_DARK);
+        calendarMonthSummary.setTextSize(15);
+        calendarMonthSummary.setTypeface(Typeface.DEFAULT_BOLD);
+        calendarMonthSummary.setPadding(0, 0, 0, dp(8));
+        content.addView(calendarMonthSummary);
+
         content.addView(createCalendarGrid());
 
         Button closeButton = new Button(this);
@@ -1034,6 +1039,7 @@ public final class MainActivity extends Activity {
             monthSpinner = null;
             yearSpinner = null;
             calendarGrid = null;
+            calendarMonthSummary = null;
             dayCells.clear();
         });
         dialog.show();
@@ -1050,7 +1056,7 @@ public final class MainActivity extends Activity {
     }
 
     private void renderCalendar() {
-        if (monthSpinner == null || yearSpinner == null || dayCells.isEmpty()) {
+        if (monthSpinner == null || yearSpinner == null || calendarMonthSummary == null || dayCells.isEmpty()) {
             return;
         }
 
@@ -1061,6 +1067,27 @@ public final class MainActivity extends Activity {
         int firstDayOffset = cursor.get(Calendar.DAY_OF_WEEK) - Calendar.SUNDAY;
         int maxDay = cursor.getActualMaximum(Calendar.DAY_OF_MONTH);
         String todayIso = isoDateFormat.format(Calendar.getInstance().getTime());
+        List<SnackDay> monthDays = snackStore.getDaysInMonth(
+                visibleMonth.get(Calendar.YEAR),
+                visibleMonth.get(Calendar.MONTH)
+        );
+        Map<String, Integer> snackCountsByDate = new HashMap<>();
+        int snackDays = 0;
+        int snackEvents = 0;
+        for (SnackDay day : monthDays) {
+            int snackCount = day.getSnackCount();
+            snackCountsByDate.put(day.getDateIso(), snackCount);
+            if (snackCount > 0) {
+                snackDays++;
+                snackEvents += snackCount;
+            }
+        }
+        calendarMonthSummary.setText(
+                snackDays + " snack eating day" + (snackDays == 1 ? "" : "s")
+                        + " · "
+                        + snackEvents + " snack" + (snackEvents == 1 ? "" : "s")
+                        + " in " + monthNames[visibleMonth.get(Calendar.MONTH)]
+        );
 
         for (int i = 0; i < dayCells.size(); i++) {
             TextView cell = dayCells.get(i);
@@ -1075,7 +1102,7 @@ public final class MainActivity extends Activity {
             Calendar cellDate = firstDayOfMonth(visibleMonth);
             cellDate.set(Calendar.DAY_OF_MONTH, dayOfMonth);
             String cellDateIso = isoDateFormat.format(cellDate.getTime());
-            int snackCount = snackStore.getSnackCount(cellDateIso);
+            int snackCount = snackCountsByDate.getOrDefault(cellDateIso, 0);
             boolean selected = cellDateIso.equals(selectedDateIso);
             boolean today = cellDateIso.equals(todayIso);
 
@@ -1210,11 +1237,7 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        TextView snackText = new TextView(this);
-        snackText.setText(result.snackRecord.displayText());
-        snackText.setTextColor(TEXT_DARK);
-        snackText.setTextSize(16);
-        row.addView(snackText, new LinearLayout.LayoutParams(
+        row.addView(createSnackDetails(result.snackRecord, 16), new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f
@@ -1243,11 +1266,7 @@ public final class MainActivity extends Activity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(0, dp(3), 0, dp(3));
 
-        TextView snackName = new TextView(this);
-        snackName.setText(snack.displayText());
-        snackName.setTextColor(TEXT_DARK);
-        snackName.setTextSize(18);
-        row.addView(snackName, new LinearLayout.LayoutParams(
+        row.addView(createSnackDetails(snack, 18), new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 1f
@@ -1267,6 +1286,51 @@ public final class MainActivity extends Activity {
         row.addView(deleteButton);
 
         return row;
+    }
+
+    private LinearLayout createSnackDetails(SnackRecord snack, int textSize) {
+        LinearLayout details = new LinearLayout(this);
+        details.setOrientation(LinearLayout.VERTICAL);
+
+        TextView snackName = new TextView(this);
+        snackName.setText(formatSnackName(snack));
+        snackName.setTextColor(TEXT_DARK);
+        snackName.setTextSize(textSize);
+        details.addView(snackName);
+
+        if (!snack.getOtherSnacks().isEmpty()) {
+            TagFlowLayout tags = new TagFlowLayout();
+            tags.setPadding(0, dp(4), 0, 0);
+            for (String otherSnack : snack.getOtherSnacks()) {
+                tags.addView(createReadOnlyTag(otherSnack), new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ));
+            }
+            details.addView(tags, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+        }
+        return details;
+    }
+
+    private String formatSnackName(SnackRecord snack) {
+        if (snack.getMaker().trim().isEmpty()) {
+            return snack.getName();
+        }
+        return snack.getName() + " — " + snack.getMaker();
+    }
+
+    private TextView createReadOnlyTag(String value) {
+        TextView tag = new TextView(this);
+        tag.setText(value);
+        tag.setTextColor(TEXT_DARK);
+        tag.setTextSize(13);
+        tag.setGravity(Gravity.CENTER);
+        tag.setPadding(dp(10), dp(5), dp(10), dp(5));
+        tag.setBackground(roundRect(ORANGE_LIGHT, dp(16), ORANGE, dp(1)));
+        return tag;
     }
 
     private void showEditSnackDialog(String dateIso, int snackIndex, SnackRecord currentSnack) {
@@ -1298,8 +1362,8 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        EditText editOtherSnacksInput = createOtherSnacksInput();
-        editOtherSnacksInput.setText(formatOtherSnackInput(currentSnack.getOtherSnacks()));
+        OtherSnacksTagsInput editOtherSnacksInput = createOtherSnacksInput();
+        editOtherSnacksInput.setValues(currentSnack.getOtherSnacks());
         content.addView(editOtherSnacksInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1330,7 +1394,7 @@ public final class MainActivity extends Activity {
                     snackIndex,
                     updatedSnack,
                     editMakerInput.getText().toString().trim(),
-                    parseOtherSnacks(editOtherSnacksInput)
+                    editOtherSnacksInput.getValuesForSave()
             );
             selectedDateIso = dateIso;
             refreshAllViews();
@@ -1410,17 +1474,6 @@ public final class MainActivity extends Activity {
         );
         monthAddDateLabel.setText("Add a snack with a date in " + monthNames[month]);
         monthListAdapter.notifyDataSetChanged();
-    }
-
-    private String formatSnackList(List<SnackRecord> snacks) {
-        StringBuilder list = new StringBuilder();
-        for (int i = 0; i < snacks.size(); i++) {
-            if (i > 0) {
-                list.append('\n');
-            }
-            list.append(snacks.get(i).displayText());
-        }
-        return list.toString();
     }
 
     private CharSequence formatDateLabel(Calendar dayCalendar, String dateLabel) {
@@ -1597,25 +1650,23 @@ public final class MainActivity extends Activity {
 
     private static final class MonthRow {
         private final CharSequence dateLabel;
-        private final String snacks;
         private final String dateIso;
         private final SnackRecord snackRecord;
         private final int snackIndex;
 
-        private MonthRow(CharSequence dateLabel, String snacks, String dateIso, SnackRecord snackRecord, int snackIndex) {
+        private MonthRow(CharSequence dateLabel, String dateIso, SnackRecord snackRecord, int snackIndex) {
             this.dateLabel = dateLabel;
-            this.snacks = snacks;
             this.dateIso = dateIso;
             this.snackRecord = snackRecord;
             this.snackIndex = snackIndex;
         }
 
         private static MonthRow addRow(CharSequence dateLabel, String dateIso) {
-            return new MonthRow(dateLabel, "", dateIso, null, -1);
+            return new MonthRow(dateLabel, dateIso, null, -1);
         }
 
         private static MonthRow snackDay(CharSequence dateLabel, String dateIso, SnackRecord snackRecord, int snackIndex) {
-            return new MonthRow(dateLabel, snackRecord.displayText(), dateIso, snackRecord, snackIndex);
+            return new MonthRow(dateLabel, dateIso, snackRecord, snackIndex);
         }
     }
 
@@ -1670,10 +1721,10 @@ public final class MainActivity extends Activity {
             return;
         }
 
-        snackStore.addSnack(selectedDateIso, snack, makerInput.getText().toString().trim(), parseOtherSnacks(otherSnacksInput));
+        snackStore.addSnack(selectedDateIso, snack, makerInput.getText().toString().trim(), otherSnacksInput.getValuesForSave());
         snackInput.setText("");
         makerInput.setText("");
-        otherSnacksInput.setText("");
+        otherSnacksInput.clearValues();
         refreshAllViews();
     }
 
@@ -1733,7 +1784,7 @@ public final class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        EditText otherSnacksInput = createOtherSnacksInput();
+        OtherSnacksTagsInput otherSnacksInput = createOtherSnacksInput();
         content.addView(otherSnacksInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1791,7 +1842,7 @@ public final class MainActivity extends Activity {
                     selectedDateIso,
                     snack,
                     makerInput.getText().toString().trim(),
-                    parseOtherSnacks(otherSnacksInput)
+                    otherSnacksInput.getValuesForSave()
             );
             renderCalendar();
             renderSelectedDay();
@@ -2075,43 +2126,8 @@ public final class MainActivity extends Activity {
         return createSnackInput("Maker (optional)");
     }
 
-    private EditText createOtherSnacksInput() {
-        MultiAutoCompleteTextView input = new MultiAutoCompleteTextView(this);
-        input.setSingleLine(false);
-        input.setMinLines(2);
-        input.setMaxLines(4);
-        input.setHint("Other snacks (optional, one per line)");
-        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        input.setThreshold(1);
-        input.setAdapter(new SnackSuggestionAdapter());
-        input.setTokenizer(new NewlineTokenizer());
-        int dropDownHeight = dp(SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP);
-        input.setDropDownHeight(dropDownHeight);
-        input.post(() -> input.setDropDownVerticalOffset(-input.getHeight() - dropDownHeight));
-        return input;
-    }
-
-    private ArrayList<String> parseOtherSnacks(EditText input) {
-        ArrayList<String> otherSnacks = new ArrayList<>();
-        String[] lines = input.getText().toString().split("\\r?\\n");
-        for (String line : lines) {
-            String snack = line.trim();
-            if (!snack.isEmpty()) {
-                otherSnacks.add(snack);
-            }
-        }
-        return otherSnacks;
-    }
-
-    private String formatOtherSnackInput(List<String> otherSnacks) {
-        StringBuilder text = new StringBuilder();
-        for (int i = 0; i < otherSnacks.size(); i++) {
-            if (i > 0) {
-                text.append('\n');
-            }
-            text.append(otherSnacks.get(i));
-        }
-        return text.toString();
+    private OtherSnacksTagsInput createOtherSnacksInput() {
+        return new OtherSnacksTagsInput();
     }
 
     private List<String> snackSuggestions(CharSequence constraint) {
@@ -2175,38 +2191,228 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private static final class NewlineTokenizer implements MultiAutoCompleteTextView.Tokenizer {
-        @Override
-        public int findTokenStart(CharSequence text, int cursor) {
-            int tokenStart = cursor;
-            while (tokenStart > 0 && text.charAt(tokenStart - 1) != '\n') {
-                tokenStart--;
-            }
-            while (tokenStart < cursor && text.charAt(tokenStart) == ' ') {
-                tokenStart++;
-            }
-            return tokenStart;
-        }
+    private final class OtherSnacksTagsInput extends LinearLayout {
+        private final ArrayList<String> values = new ArrayList<>();
+        private final TagFlowLayout tagContainer;
+        private final AutoCompleteTextView input;
 
-        @Override
-        public int findTokenEnd(CharSequence text, int cursor) {
-            int tokenEnd = cursor;
-            while (tokenEnd < text.length()) {
-                if (text.charAt(tokenEnd) == '\n') {
-                    return tokenEnd;
+        private OtherSnacksTagsInput() {
+            super(MainActivity.this);
+            setOrientation(VERTICAL);
+            setPadding(0, dp(4), 0, dp(4));
+
+            TextView label = new TextView(MainActivity.this);
+            label.setText("Optional tags");
+            label.setTextColor(TEXT_DARK);
+            label.setTextSize(14);
+            label.setTypeface(Typeface.DEFAULT_BOLD);
+            label.setPadding(0, 0, 0, dp(4));
+            addView(label);
+
+            tagContainer = new TagFlowLayout();
+            tagContainer.setPadding(dp(8), dp(6), dp(8), dp(6));
+            tagContainer.setMinimumHeight(dp(52));
+            tagContainer.setBackground(roundRect(Color.WHITE, dp(10), TEXT_MUTED, dp(1)));
+            addView(tagContainer, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+
+            input = new AutoCompleteTextView(MainActivity.this);
+            input.setSingleLine(true);
+            input.setHint("Add tag");
+            input.setTextColor(TEXT_DARK);
+            input.setHintTextColor(TEXT_MUTED);
+            input.setTextSize(16);
+            input.setPadding(dp(6), dp(6), dp(6), dp(6));
+            input.setBackgroundColor(Color.TRANSPARENT);
+            input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+            input.setThreshold(1);
+            input.setAdapter(new SnackSuggestionAdapter());
+            int dropDownHeight = dp(SNACK_SUGGESTION_DROPDOWN_HEIGHT_DP);
+            input.setDropDownHeight(dropDownHeight);
+            input.post(() -> input.setDropDownVerticalOffset(-input.getHeight() - dropDownHeight));
+            input.setOnFocusChangeListener((view, hasFocus) -> {
+                if (hasFocus && input.getText().length() > 0) {
+                    input.showDropDown();
                 }
-                tokenEnd++;
+            });
+            input.setOnItemClickListener((parent, view, position, id) -> {
+                Object selectedValue = parent.getItemAtPosition(position);
+                if (selectedValue != null) {
+                    addValue(selectedValue.toString());
+                }
+            });
+            input.setOnEditorActionListener((view, actionId, event) -> {
+                boolean enterPressed = event != null
+                        && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                        && event.getAction() == KeyEvent.ACTION_DOWN;
+                if (actionId == EditorInfo.IME_ACTION_DONE || enterPressed) {
+                    addPendingValue();
+                    return true;
+                }
+                return false;
+            });
+
+            renderValues();
+
+            TextView helper = new TextView(MainActivity.this);
+            helper.setText("Start typing to reuse a tag · Enter adds a new one");
+            helper.setTextColor(TEXT_MUTED);
+            helper.setTextSize(12);
+            helper.setPadding(dp(2), dp(3), 0, 0);
+            addView(helper);
+        }
+
+        private void setValues(List<String> newValues) {
+            values.clear();
+            values.addAll(newValues);
+            input.setText("");
+            renderValues();
+        }
+
+        private ArrayList<String> getValuesForSave() {
+            addPendingValue();
+            return new ArrayList<>(values);
+        }
+
+        private void clearValues() {
+            values.clear();
+            input.setText("");
+            renderValues();
+        }
+
+        private void addPendingValue() {
+            addValue(input.getText().toString());
+        }
+
+        private void addValue(String rawValue) {
+            String value = rawValue.trim();
+            if (value.isEmpty()) {
+                return;
             }
-            return text.length();
+
+            values.add(value);
+            input.setText("");
+            input.dismissDropDown();
+            renderValues();
+            input.requestFocus();
+        }
+
+        private void renderValues() {
+            tagContainer.removeAllViews();
+            for (int i = 0; i < values.size(); i++) {
+                int valueIndex = i;
+                tagContainer.addView(createTag(values.get(i), () -> {
+                    values.remove(valueIndex);
+                    renderValues();
+                }), new ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ));
+            }
+            tagContainer.addView(input, new ViewGroup.LayoutParams(dp(150), dp(40)));
+        }
+
+        private View createTag(String value, Runnable removeValue) {
+            LinearLayout tag = new LinearLayout(MainActivity.this);
+            tag.setGravity(Gravity.CENTER_VERTICAL);
+            tag.setPadding(dp(10), dp(4), dp(6), dp(4));
+            tag.setBackground(roundRect(ORANGE_LIGHT, dp(16), ORANGE, dp(1)));
+
+            TextView text = new TextView(MainActivity.this);
+            text.setText(value);
+            text.setTextColor(TEXT_DARK);
+            text.setTextSize(14);
+            tag.addView(text);
+
+            TextView remove = new TextView(MainActivity.this);
+            remove.setText("×");
+            remove.setTextColor(ORANGE_DARK);
+            remove.setTextSize(20);
+            remove.setGravity(Gravity.CENTER);
+            remove.setPadding(dp(6), 0, dp(2), 0);
+            remove.setContentDescription("Remove " + value);
+            remove.setOnClickListener(view -> removeValue.run());
+            tag.addView(remove, new LinearLayout.LayoutParams(dp(30), dp(32)));
+            return tag;
+        }
+    }
+
+    private final class TagFlowLayout extends ViewGroup {
+        private final int horizontalGap = dp(6);
+        private final int verticalGap = dp(6);
+
+        private TagFlowLayout() {
+            super(MainActivity.this);
         }
 
         @Override
-        public CharSequence terminateToken(CharSequence text) {
-            String completedText = text == null ? "" : text.toString().trim();
-            if (completedText.endsWith("\n")) {
-                return completedText;
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int availableWidth = Math.max(
+                    0,
+                    MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight()
+            );
+            int lineWidth = 0;
+            int lineHeight = 0;
+            int measuredContentWidth = 0;
+            int measuredContentHeight = 0;
+
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                measureChild(child, widthMeasureSpec, heightMeasureSpec);
+                int childWidth = child.getMeasuredWidth();
+                int childHeight = child.getMeasuredHeight();
+
+                if (lineWidth > 0 && lineWidth + horizontalGap + childWidth > availableWidth) {
+                    measuredContentWidth = Math.max(measuredContentWidth, lineWidth);
+                    measuredContentHeight += lineHeight + verticalGap;
+                    lineWidth = 0;
+                    lineHeight = 0;
+                }
+
+                if (lineWidth > 0) {
+                    lineWidth += horizontalGap;
+                }
+                lineWidth += childWidth;
+                lineHeight = Math.max(lineHeight, childHeight);
             }
-            return completedText + "\n";
+
+            measuredContentWidth = Math.max(measuredContentWidth, lineWidth);
+            measuredContentHeight += lineHeight;
+            int desiredWidth = measuredContentWidth + getPaddingLeft() + getPaddingRight();
+            int desiredHeight = measuredContentHeight + getPaddingTop() + getPaddingBottom();
+            setMeasuredDimension(
+                    resolveSize(desiredWidth, widthMeasureSpec),
+                    resolveSize(Math.max(desiredHeight, getSuggestedMinimumHeight()), heightMeasureSpec)
+            );
+        }
+
+        @Override
+        protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            int availableWidth = right - left - getPaddingLeft() - getPaddingRight();
+            int childLeft = getPaddingLeft();
+            int childTop = getPaddingTop();
+            int lineHeight = 0;
+
+            for (int i = 0; i < getChildCount(); i++) {
+                View child = getChildAt(i);
+                int childWidth = child.getMeasuredWidth();
+                int childHeight = child.getMeasuredHeight();
+                if (childLeft > getPaddingLeft()
+                        && childLeft + horizontalGap + childWidth > getPaddingLeft() + availableWidth) {
+                    childLeft = getPaddingLeft();
+                    childTop += lineHeight + verticalGap;
+                    lineHeight = 0;
+                }
+
+                if (childLeft > getPaddingLeft()) {
+                    childLeft += horizontalGap;
+                }
+                child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
+                childLeft += childWidth;
+                lineHeight = Math.max(lineHeight, childHeight);
+            }
         }
     }
 

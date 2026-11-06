@@ -51,23 +51,4 @@ final class SnackRecord {
     List<String> getOtherSnacks() {
         return Collections.unmodifiableList(otherSnacks);
     }
-
-    String displayText() {
-        StringBuilder text = new StringBuilder();
-        if (maker == null || maker.trim().isEmpty()) {
-            text.append(name);
-        } else {
-            text.append(name).append(" — ").append(maker);
-        }
-        if (!otherSnacks.isEmpty()) {
-            text.append("\nOther: ");
-            for (int i = 0; i < otherSnacks.size(); i++) {
-                if (i > 0) {
-                    text.append("; ");
-                }
-                text.append(otherSnacks.get(i));
-            }
-        }
-        return text.toString();
-    }
 }
