@@ -33,6 +33,18 @@ final class SnackRecorderUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Cookie"].waitForExistence(timeout: 5))
     }
 
+    @MainActor func testWrappedTagsStayInsideTheirDay() {
+        let app = launch(extra: ["--tag-layout-fixture"])
+        app.buttons["show-calendar"].tap()
+        app.buttons["calendar-day-2026-10-30"].tap()
+        let record = app.buttons["edit-2026-10-30-0"]
+        let nextDay = app.buttons["month-add-2026-10-31"]
+        XCTAssertTrue(record.waitForExistence(timeout: 5))
+        XCTAssertTrue(nextDay.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(record.frame.height, 80)
+        XCTAssertLessThanOrEqual(record.frame.maxY, nextDay.frame.minY)
+    }
+
     @MainActor private func capture(_ app: XCUIApplication, name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name

@@ -168,6 +168,6 @@ struct TagFlow: Layout {
             usedWidth = max(usedWidth, x - spacing)
             lineHeight = max(lineHeight, size.height)
         }
-        return (frames, CGSize(width: usedWidth, height: y + lineHeight))
+        return (frames, CGSize(width: width.isFinite ? width : usedWidth, height: y + lineHeight))
     }
 }

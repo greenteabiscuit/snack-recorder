@@ -168,8 +168,10 @@ struct SnackEventRow: View {
                     if !record.maker.isEmpty { Text(record.maker).font(.subheadline).foregroundStyle(.secondary) }
                     if !record.otherSnacks.isEmpty {
                         TagFlow { ForEach(Array(record.otherSnacks.enumerated()), id: \.offset) { SnackTag(text: $0.element) } }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+                }.frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("edit-\(day)-\(index)").accessibilityHint("Edit snack")
             if showDelete {
                 Button(role: .destructive) { model.update { try $0.remove(day: day, index: index) } } label: {

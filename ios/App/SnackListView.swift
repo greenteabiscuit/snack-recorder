@@ -38,6 +38,12 @@ final class SnackViewModel: ObservableObject {
                                    SnackRecord(name: "Apple", maker: "Farm")]
                 ])
                 try? repository.save(seed)
+            } else if ProcessInfo.processInfo.arguments.contains("--tag-layout-fixture") {
+                let seed = SnackArchive(days: [
+                    "2026-10-30": [SnackRecord(name: "Sample snack", otherSnacks: ["First long tag", "Second long tag", "Third long tag", "Fourth long tag"])],
+                    "2026-10-31": [SnackRecord(name: "Next day snack")]
+                ])
+                try? repository.save(seed)
             }
         }
         #endif
